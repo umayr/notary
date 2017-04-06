@@ -76,6 +76,7 @@ func ExportKeys(to io.Writer, s Exporter, from string) error {
 	// parse PEM blocks if there are more than one
 	for block, rest := pem.Decode(k); block != nil; block, rest = pem.Decode(rest) {
 		// add from path in a header for later import
+		// TODO(umayr): unmarshal asn1 structure here
 		block.Headers["path"] = from
 		// write serialized PEM
 		err = pem.Encode(to, block)
@@ -132,7 +133,7 @@ func ImportKeys(from io.Reader, to []Importer, fallbackRole string, fallbackGUN 
 					return errors.New("maximum number of passphrase attempts exceeded")
 				}
 			}
-			blockBytes, err = utils.EncryptPrivateKey(privKey, tufdata.RoleName(block.Headers["role"]), tufdata.GUN(block.Headers["gun"]), chosenPassphrase)
+			blockBytes, err = utils.ConvertPrivateKeyToPKCS8(privKey, tufdata.RoleName(block.Headers["role"]), tufdata.GUN(block.Headers["gun"]), chosenPassphrase)
 			if err != nil {
 				return errors.New("failed to encrypt key with given passphrase")
 			}

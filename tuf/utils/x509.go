@@ -8,6 +8,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -86,60 +87,81 @@ func X509PublicKeyID(certPubKey data.PublicKey) (string, error) {
 }
 
 // ParsePEMPrivateKey returns a data.PrivateKey from a PEM encoded private key. It
-// only supports RSA (PKCS#1) and attempts to decrypt using the passphrase, if encrypted.
+// supports PKCS#8 as well as RSA/ECDSA (PKCS#1) only in non-FIPS mode and
+// attempts to decrypt using the passphrase, if encrypted.
 func ParsePEMPrivateKey(pemBytes []byte, passphrase string) (data.PrivateKey, error) {
 	block, _ := pem.Decode(pemBytes)
 	if block == nil {
 		return nil, errors.New("no valid private key found")
 	}
 
-	var privKeyBytes []byte
-	var err error
-	if x509.IsEncryptedPEMBlock(block) {
-		privKeyBytes, err = x509.DecryptPEMBlock(block, []byte(passphrase))
-		if err != nil {
-			return nil, errors.New("could not decrypt private key")
-		}
-	} else {
-		privKeyBytes = block.Bytes
-	}
-
 	switch block.Type {
-	case "RSA PRIVATE KEY":
-		rsaPrivKey, err := x509.ParsePKCS1PrivateKey(privKeyBytes)
-		if err != nil {
-			return nil, fmt.Errorf("could not parse DER encoded key: %v", err)
+	case "RSA PRIVATE KEY", "EC PRIVATE KEY", "ED25519 PRIVATE KEY":
+		if notary.FIPSEnabled {
+			return nil, fmt.Errorf("%s not supported in FIPS mode", block.Type)
 		}
 
-		tufRSAPrivateKey, err := RSAToPrivateKey(rsaPrivKey)
-		if err != nil {
-			return nil, fmt.Errorf("could not convert rsa.PrivateKey to data.PrivateKey: %v", err)
+		var privKeyBytes []byte
+		var err error
+		if x509.IsEncryptedPEMBlock(block) {
+			privKeyBytes, err = x509.DecryptPEMBlock(block, []byte(passphrase))
+			if err != nil {
+				return nil, errors.New("could not decrypt private key")
+			}
+		} else {
+			privKeyBytes = block.Bytes
 		}
 
-		return tufRSAPrivateKey, nil
-	case "EC PRIVATE KEY":
-		ecdsaPrivKey, err := x509.ParseECPrivateKey(privKeyBytes)
-		if err != nil {
-			return nil, fmt.Errorf("could not parse DER encoded private key: %v", err)
+		switch block.Type {
+		case "RSA PRIVATE KEY":
+			rsaPrivKey, err := x509.ParsePKCS1PrivateKey(privKeyBytes)
+			if err != nil {
+				return nil, fmt.Errorf("could not parse DER encoded key: %v", err)
+			}
+
+			tufRSAPrivateKey, err := RSAToPrivateKey(rsaPrivKey)
+			if err != nil {
+				return nil, fmt.Errorf("could not convert rsa.PrivateKey to data.PrivateKey: %v", err)
+			}
+
+			return tufRSAPrivateKey, nil
+		case "EC PRIVATE KEY":
+			ecdsaPrivKey, err := x509.ParseECPrivateKey(privKeyBytes)
+			if err != nil {
+				return nil, fmt.Errorf("could not parse DER encoded private key: %v", err)
+			}
+
+			tufECDSAPrivateKey, err := ECDSAToPrivateKey(ecdsaPrivKey)
+			if err != nil {
+				return nil, fmt.Errorf("could not convert ecdsa.PrivateKey to data.PrivateKey: %v", err)
+			}
+
+			return tufECDSAPrivateKey, nil
+		case "ED25519 PRIVATE KEY":
+			// We serialize ED25519 keys by concatenating the private key
+			// to the public key and encoding with PEM. See the
+			// ED25519ToPrivateKey function.
+			tufECDSAPrivateKey, err := ED25519ToPrivateKey(privKeyBytes)
+			if err != nil {
+				return nil, fmt.Errorf("could not convert ecdsa.PrivateKey to data.PrivateKey: %v", err)
+			}
+
+			return tufECDSAPrivateKey, nil
+
+		default:
+			return nil, fmt.Errorf("unsupported key type %q", block.Type)
+		}
+	case "PRIVATE ENCRYPTED KEY", "PRIVATE KEY":
+		var wrap data.KeyWrap
+
+		if _, err := asn1.Unmarshal(block.Bytes, &wrap); err != nil {
+			return nil, errors.New("unable to unmarshal asn1 structure")
 		}
 
-		tufECDSAPrivateKey, err := ECDSAToPrivateKey(ecdsaPrivKey)
-		if err != nil {
-			return nil, fmt.Errorf("could not convert ecdsa.PrivateKey to data.PrivateKey: %v", err)
+		if passphrase == "" {
+			return ParsePKCS8ToTufKey(wrap.Key)
 		}
-
-		return tufECDSAPrivateKey, nil
-	case "ED25519 PRIVATE KEY":
-		// We serialize ED25519 keys by concatenating the private key
-		// to the public key and encoding with PEM. See the
-		// ED25519ToPrivateKey function.
-		tufECDSAPrivateKey, err := ED25519ToPrivateKey(privKeyBytes)
-		if err != nil {
-			return nil, fmt.Errorf("could not convert ecdsa.PrivateKey to data.PrivateKey: %v", err)
-		}
-
-		return tufECDSAPrivateKey, nil
-
+		return ParsePKCS8ToTufKey(wrap.Key, []byte(passphrase))
 	default:
 		return nil, fmt.Errorf("unsupported key type %q", block.Type)
 	}
@@ -431,75 +453,60 @@ func ED25519ToPrivateKey(privKeyBytes []byte) (data.PrivateKey, error) {
 	return data.NewED25519PrivateKey(*pubKey, privKeyBytes)
 }
 
-func blockType(k data.PrivateKey) (string, error) {
-	switch k.Algorithm() {
-	case data.RSAKey, data.RSAx509Key:
-		return "RSA PRIVATE KEY", nil
-	case data.ECDSAKey, data.ECDSAx509Key:
-		return "EC PRIVATE KEY", nil
-	case data.ED25519Key:
-		return "ED25519 PRIVATE KEY", nil
+// ExtractPrivateKeyAttributes extracts role and gun values from private key bytes
+func ExtractPrivateKeyAttributes(pemBytes []byte) (data.RoleName, data.GUN, error) {
+	block, _ := pem.Decode(pemBytes)
+	if block == nil {
+		return "", "", errors.New("PEM block is empty")
+	}
+
+	switch block.Type {
+	case "RSA PRIVATE KEY", "EC PRIVATE KEY", "ED25519 PRIVATE KEY":
+		if notary.FIPSEnabled {
+			return "", "", errors.New("unknown key format")
+		}
+		return data.RoleName(block.Headers["role"]), data.GUN(block.Headers["gun"]), nil
+	case "PRIVATE KEY", "PRIVATE ENCRYPTED KEY":
+		var wrap data.KeyWrap
+		if _, err := asn1.Unmarshal(block.Bytes, &wrap); err != nil {
+			return "", "", errors.New("unable to unmarshal asn1 structure")
+		}
+		return wrap.Role, wrap.GUN, nil
 	default:
-		return "", fmt.Errorf("algorithm %s not supported", k.Algorithm())
+		return "", "", errors.New("unknown key format")
 	}
 }
 
-// KeyToPEM returns a PEM encoded key from a Private Key
-func KeyToPEM(privKey data.PrivateKey, role data.RoleName, gun data.GUN) ([]byte, error) {
-	bt, err := blockType(privKey)
+// ConvertPrivateKeyToPKCS8 converts a data.PrivateKey to PKCS#8 Format
+// Since PKCS#8 doesn't allow any headers so PKCS#8 is being wrapped in another asn1 format (data.KeyWrap)
+// as DER format with role and gun information.
+func ConvertPrivateKeyToPKCS8(key data.PrivateKey, role data.RoleName, gun data.GUN, passphrase string) ([]byte, error) {
+	var (
+		err       error
+		der       []byte
+		blockType string = "PRIVATE KEY"
+	)
+
+	if passphrase == "" {
+		der, err = ConvertTUFKeyToPKCS8(key)
+	} else {
+		blockType = "PRIVATE ENCRYPTED KEY"
+		der, err = ConvertTUFKeyToPKCS8(key, []byte(passphrase))
+	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to convert to PKCS8 key")
 	}
 
-	headers := map[string]string{}
-	if role != "" {
-		headers["role"] = role.String()
-	}
-	if gun != "" {
-		headers["gun"] = gun.String()
-	}
-
-	block := &pem.Block{
-		Type:    bt,
-		Headers: headers,
-		Bytes:   privKey.Private(),
-	}
-
-	return pem.EncodeToMemory(block), nil
-}
-
-// EncryptPrivateKey returns an encrypted PEM key given a Privatekey
-// and a passphrase
-func EncryptPrivateKey(key data.PrivateKey, role data.RoleName, gun data.GUN, passphrase string) ([]byte, error) {
-	bt, err := blockType(key)
+	b, err := asn1.Marshal(data.KeyWrap{
+		Role: role,
+		GUN:  gun,
+		Key:  der,
+	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to marshal asn1 structure")
 	}
 
-	password := []byte(passphrase)
-	cipherType := x509.PEMCipherAES256
-
-	encryptedPEMBlock, err := x509.EncryptPEMBlock(rand.Reader,
-		bt,
-		key.Private(),
-		password,
-		cipherType)
-	if err != nil {
-		return nil, err
-	}
-
-	if encryptedPEMBlock.Headers == nil {
-		return nil, fmt.Errorf("unable to encrypt key - invalid PEM file produced")
-	}
-
-	if role != "" {
-		encryptedPEMBlock.Headers["role"] = role.String()
-	}
-	if gun != "" {
-		encryptedPEMBlock.Headers["gun"] = gun.String()
-	}
-
-	return pem.EncodeToMemory(encryptedPEMBlock), nil
+	return pem.EncodeToMemory(&pem.Block{Bytes: b, Type: blockType}), nil
 }
 
 // CertToKey transforms a single input certificate into its corresponding
