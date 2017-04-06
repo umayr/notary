@@ -6,6 +6,9 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/asn1"
+	"encoding/pem"
+	"fmt"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -87,28 +90,37 @@ func TestKeyOperations(t *testing.T) {
 	require.NoError(t, err)
 
 	// Encode our ED private key
-	edPEM, err := KeyToPEM(edKey, data.CanonicalRootRole, "")
+	edPEM, err := ConvertPrivateKeyToPKCS8(edKey, data.CanonicalRootRole, "", "")
 	require.NoError(t, err)
 
 	// Encode our EC private key
-	ecPEM, err := KeyToPEM(ecKey, data.CanonicalRootRole, "")
+	ecPEM, err := ConvertPrivateKeyToPKCS8(ecKey, data.CanonicalRootRole, "", "")
 	require.NoError(t, err)
 
 	// Encode our RSA private key
-	rsaPEM, err := KeyToPEM(rsaKey, data.CanonicalRootRole, "")
+	rsaPEM, err := ConvertPrivateKeyToPKCS8(rsaKey, data.CanonicalRootRole, "", "")
 	require.NoError(t, err)
 
 	// Check to see if ED key it is encoded
 	stringEncodedEDKey := string(edPEM)
-	require.True(t, strings.Contains(stringEncodedEDKey, "-----BEGIN ED25519 PRIVATE KEY-----"))
+	require.True(t, strings.Contains(stringEncodedEDKey, "-----BEGIN PRIVATE KEY-----"))
+
+	// Check to see the ED key type
+	testKeyBlockType(t, edPEM, nil, "ed25519")
 
 	// Check to see if EC key it is encoded
 	stringEncodedECKey := string(ecPEM)
-	require.True(t, strings.Contains(stringEncodedECKey, "-----BEGIN EC PRIVATE KEY-----"))
+	require.True(t, strings.Contains(stringEncodedECKey, "-----BEGIN PRIVATE KEY-----"))
+
+	// Check to see the EC key type
+	testKeyBlockType(t, ecPEM, nil, "ecdsa")
 
 	// Check to see if RSA key it is encoded
 	stringEncodedRSAKey := string(rsaPEM)
-	require.True(t, strings.Contains(stringEncodedRSAKey, "-----BEGIN RSA PRIVATE KEY-----"))
+	require.True(t, strings.Contains(stringEncodedRSAKey, "-----BEGIN PRIVATE KEY-----"))
+
+	// Check to see the RSA key type
+	testKeyBlockType(t, rsaPEM, nil, "rsa")
 
 	// Decode our ED Key
 	decodedEDKey, err := ParsePEMPrivateKey(edPEM, "")
@@ -126,34 +138,38 @@ func TestKeyOperations(t *testing.T) {
 	require.Equal(t, rsaKey.Private(), decodedRSAKey.Private())
 
 	// Encrypt our ED Key
-	encryptedEDKey, err := EncryptPrivateKey(edKey, data.CanonicalRootRole, "", "ponies")
+	encryptedEDKey, err := ConvertPrivateKeyToPKCS8(edKey, data.CanonicalRootRole, "", "ponies")
 	require.NoError(t, err)
 
 	// Encrypt our EC Key
-	encryptedECKey, err := EncryptPrivateKey(ecKey, data.CanonicalRootRole, "", "ponies")
+	encryptedECKey, err := ConvertPrivateKeyToPKCS8(ecKey, data.CanonicalRootRole, "", "ponies")
 	require.NoError(t, err)
 
 	// Encrypt our RSA Key
-	encryptedRSAKey, err := EncryptPrivateKey(rsaKey, data.CanonicalRootRole, "", "ponies")
+	encryptedRSAKey, err := ConvertPrivateKeyToPKCS8(rsaKey, data.CanonicalRootRole, "", "ponies")
 	require.NoError(t, err)
 
 	// Check to see if ED key it is encrypted
 	stringEncryptedEDKey := string(encryptedEDKey)
-	require.True(t, strings.Contains(stringEncryptedEDKey, "-----BEGIN ED25519 PRIVATE KEY-----"))
-	require.True(t, strings.Contains(stringEncryptedEDKey, "Proc-Type: 4,ENCRYPTED"))
-	require.True(t, strings.Contains(stringEncryptedEDKey, "role: root"))
+	fmt.Println(stringEncryptedEDKey)
+	require.True(t, strings.Contains(stringEncryptedEDKey, "-----BEGIN PRIVATE ENCRYPTED KEY-----"))
+	role, _, err := ExtractPrivateKeyAttributes(encryptedEDKey)
+	require.NoError(t, err)
+	require.EqualValues(t, "root", role)
 
 	// Check to see if EC key it is encrypted
 	stringEncryptedECKey := string(encryptedECKey)
-	require.True(t, strings.Contains(stringEncryptedECKey, "-----BEGIN EC PRIVATE KEY-----"))
-	require.True(t, strings.Contains(stringEncryptedECKey, "Proc-Type: 4,ENCRYPTED"))
-	require.True(t, strings.Contains(stringEncryptedECKey, "role: root"))
+	require.True(t, strings.Contains(stringEncryptedECKey, "-----BEGIN PRIVATE ENCRYPTED KEY-----"))
+	role, _, err = ExtractPrivateKeyAttributes(encryptedECKey)
+	require.NoError(t, err)
+	require.EqualValues(t, "root", role)
 
 	// Check to see if RSA key it is encrypted
 	stringEncryptedRSAKey := string(encryptedRSAKey)
-	require.True(t, strings.Contains(stringEncryptedRSAKey, "-----BEGIN RSA PRIVATE KEY-----"))
-	require.True(t, strings.Contains(stringEncryptedRSAKey, "Proc-Type: 4,ENCRYPTED"))
-	require.True(t, strings.Contains(stringEncryptedRSAKey, "role: root"))
+	require.True(t, strings.Contains(stringEncryptedRSAKey, "-----BEGIN PRIVATE ENCRYPTED KEY-----"))
+	role, _, err = ExtractPrivateKeyAttributes(encryptedRSAKey)
+	require.NoError(t, err)
+	require.EqualValues(t, "root", role)
 
 	// Decrypt our ED Key
 	decryptedEDKey, err := ParsePEMPrivateKey(encryptedEDKey, "ponies")
@@ -172,17 +188,41 @@ func TestKeyOperations(t *testing.T) {
 
 	// quick test that gun headers are being added appropriately
 	// Encrypt our RSA Key, one type of key should be enough since headers are treated the same
-	testGunKey, err := EncryptPrivateKey(rsaKey, data.CanonicalRootRole, "ilove", "ponies")
+	testGunKey, err := ConvertPrivateKeyToPKCS8(rsaKey, data.CanonicalRootRole, "ilove", "ponies")
 	require.NoError(t, err)
 
-	testNoGunKey, err := EncryptPrivateKey(rsaKey, data.CanonicalRootRole, "", "ponies")
+	testNoGunKey, err := ConvertPrivateKeyToPKCS8(rsaKey, data.CanonicalRootRole, "", "ponies")
 	require.NoError(t, err)
 
-	stringTestGunKey := string(testGunKey)
-	require.True(t, strings.Contains(stringTestGunKey, "gun: ilove"))
+	_, gun, err := ExtractPrivateKeyAttributes(testGunKey)
+	require.NoError(t, err)
+	require.EqualValues(t, "ilove", gun)
 
-	stringTestNoGunKey := string(testNoGunKey)
-	require.False(t, strings.Contains(stringTestNoGunKey, "gun:"))
+	_, gun, err = ExtractPrivateKeyAttributes(testNoGunKey)
+	require.NoError(t, err)
+	require.EqualValues(t, "", gun)
+}
+
+func testKeyBlockType(t *testing.T, b, password []byte, expectedKeyType string) {
+	block, _ := pem.Decode(b)
+
+	var wrap data.KeyWrap
+	if _, err := asn1.Unmarshal(block.Bytes, &wrap); err != nil {
+		require.NoError(t, err, "unable to unmarshal key")
+	}
+
+	var privKey data.PrivateKey
+	var err error
+	if password == nil {
+		privKey, err = ParsePKCS8ToTufKey(wrap.Key)
+	} else {
+		privKey, err = ParsePKCS8ToTufKey(wrap.Key, password)
+	}
+	if err != nil {
+		require.NoError(t, err, "unable to parse to pkcs8")
+	}
+
+	require.Equal(t, expectedKeyType, privKey.Algorithm(), "key type did not match")
 }
 
 // X509PublickeyID returns the public key ID of a RSA X509 key rather than the
