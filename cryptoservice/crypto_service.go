@@ -143,7 +143,17 @@ func CheckRootKeyIsEncrypted(pemBytes []byte) error {
 		return ErrNoValidPrivateKey
 	}
 
-	if !x509.IsEncryptedPEMBlock(block) {
+	if notary.FIPSEnabled {
+		if block.Type == "PRIVATE ENCRYPTED KEY" {
+			return nil
+		}
+		return ErrRootKeyNotEncrypted
+	}
+
+	if block.Type != "PRIVATE ENCRYPTED KEY" {
+		if x509.IsEncryptedPEMBlock(block) {
+			return nil
+		}
 		return ErrRootKeyNotEncrypted
 	}
 
