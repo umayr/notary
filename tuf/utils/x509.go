@@ -82,6 +82,63 @@ func X509PublicKeyID(certPubKey data.PublicKey) (string, error) {
 	return key.ID(), nil
 }
 
+func parseLegacyPrivateKey(block *pem.Block, passphrase string) (data.PrivateKey, error) {
+	if notary.FIPSEnabled {
+		return nil, fmt.Errorf("%s not supported in FIPS mode", block.Type)
+	}
+
+	var privKeyBytes []byte
+	var err error
+	if x509.IsEncryptedPEMBlock(block) {
+		privKeyBytes, err = x509.DecryptPEMBlock(block, []byte(passphrase))
+		if err != nil {
+			return nil, errors.New("could not decrypt private key")
+		}
+	} else {
+		privKeyBytes = block.Bytes
+	}
+
+	switch block.Type {
+	case "RSA PRIVATE KEY":
+		rsaPrivKey, err := x509.ParsePKCS1PrivateKey(privKeyBytes)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse DER encoded key: %v", err)
+		}
+
+		tufRSAPrivateKey, err := RSAToPrivateKey(rsaPrivKey)
+		if err != nil {
+			return nil, fmt.Errorf("could not convert rsa.PrivateKey to data.PrivateKey: %v", err)
+		}
+
+		return tufRSAPrivateKey, nil
+	case "EC PRIVATE KEY":
+		ecdsaPrivKey, err := x509.ParseECPrivateKey(privKeyBytes)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse DER encoded private key: %v", err)
+		}
+
+		tufECDSAPrivateKey, err := ECDSAToPrivateKey(ecdsaPrivKey)
+		if err != nil {
+			return nil, fmt.Errorf("could not convert ecdsa.PrivateKey to data.PrivateKey: %v", err)
+		}
+
+		return tufECDSAPrivateKey, nil
+	case "ED25519 PRIVATE KEY":
+		// We serialize ED25519 keys by concatenating the private key
+		// to the public key and encoding with PEM. See the
+		// ED25519ToPrivateKey function.
+		tufECDSAPrivateKey, err := ED25519ToPrivateKey(privKeyBytes)
+		if err != nil {
+			return nil, fmt.Errorf("could not convert ecdsa.PrivateKey to data.PrivateKey: %v", err)
+		}
+
+		return tufECDSAPrivateKey, nil
+
+	default:
+		return nil, fmt.Errorf("unsupported key type %q", block.Type)
+	}
+}
+
 // ParsePEMPrivateKey returns a data.PrivateKey from a PEM encoded private key. It
 // supports PKCS#8 as well as RSA/ECDSA (PKCS#1) only in non-FIPS mode and
 // attempts to decrypt using the passphrase, if encrypted.
@@ -93,60 +150,7 @@ func ParsePEMPrivateKey(pemBytes []byte, passphrase string) (data.PrivateKey, er
 
 	switch block.Type {
 	case "RSA PRIVATE KEY", "EC PRIVATE KEY", "ED25519 PRIVATE KEY":
-		if notary.FIPSEnabled {
-			return nil, fmt.Errorf("%s not supported in FIPS mode", block.Type)
-		}
-
-		var privKeyBytes []byte
-		var err error
-		if x509.IsEncryptedPEMBlock(block) {
-			privKeyBytes, err = x509.DecryptPEMBlock(block, []byte(passphrase))
-			if err != nil {
-				return nil, errors.New("could not decrypt private key")
-			}
-		} else {
-			privKeyBytes = block.Bytes
-		}
-
-		switch block.Type {
-		case "RSA PRIVATE KEY":
-			rsaPrivKey, err := x509.ParsePKCS1PrivateKey(privKeyBytes)
-			if err != nil {
-				return nil, fmt.Errorf("could not parse DER encoded key: %v", err)
-			}
-
-			tufRSAPrivateKey, err := RSAToPrivateKey(rsaPrivKey)
-			if err != nil {
-				return nil, fmt.Errorf("could not convert rsa.PrivateKey to data.PrivateKey: %v", err)
-			}
-
-			return tufRSAPrivateKey, nil
-		case "EC PRIVATE KEY":
-			ecdsaPrivKey, err := x509.ParseECPrivateKey(privKeyBytes)
-			if err != nil {
-				return nil, fmt.Errorf("could not parse DER encoded private key: %v", err)
-			}
-
-			tufECDSAPrivateKey, err := ECDSAToPrivateKey(ecdsaPrivKey)
-			if err != nil {
-				return nil, fmt.Errorf("could not convert ecdsa.PrivateKey to data.PrivateKey: %v", err)
-			}
-
-			return tufECDSAPrivateKey, nil
-		case "ED25519 PRIVATE KEY":
-			// We serialize ED25519 keys by concatenating the private key
-			// to the public key and encoding with PEM. See the
-			// ED25519ToPrivateKey function.
-			tufECDSAPrivateKey, err := ED25519ToPrivateKey(privKeyBytes)
-			if err != nil {
-				return nil, fmt.Errorf("could not convert ecdsa.PrivateKey to data.PrivateKey: %v", err)
-			}
-
-			return tufECDSAPrivateKey, nil
-
-		default:
-			return nil, fmt.Errorf("unsupported key type %q", block.Type)
-		}
+		return parseLegacyPrivateKey(block, passphrase)
 	case "PRIVATE ENCRYPTED KEY", "PRIVATE KEY":
 		if passphrase == "" {
 			return ParsePKCS8ToTufKey(block.Bytes)
@@ -453,7 +457,7 @@ func ConvertPrivateKeyToPKCS8(key data.PrivateKey, role data.RoleName, gun data.
 	var (
 		err       error
 		der       []byte
-		blockType string = "PRIVATE KEY"
+		blockType = "PRIVATE KEY"
 	)
 
 	if passphrase == "" {
