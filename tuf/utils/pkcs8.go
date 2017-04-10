@@ -111,6 +111,9 @@ func parsePKCS8ToTufKey(der []byte) (data.PrivateKey, error) {
 	}
 
 	if _, err := asn1.Unmarshal(der, &key); err != nil {
+		if _, ok := err.(asn1.StructuralError); ok {
+			return nil, errors.New("could not decrypt private key")
+		}
 		return nil, err
 	}
 
