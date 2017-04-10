@@ -8,7 +8,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -152,16 +151,10 @@ func ParsePEMPrivateKey(pemBytes []byte, passphrase string) (data.PrivateKey, er
 			return nil, fmt.Errorf("unsupported key type %q", block.Type)
 		}
 	case "PRIVATE ENCRYPTED KEY", "PRIVATE KEY":
-		var wrap data.KeyWrap
-
-		if _, err := asn1.Unmarshal(block.Bytes, &wrap); err != nil {
-			return nil, errors.New("unable to unmarshal asn1 structure")
-		}
-
 		if passphrase == "" {
-			return ParsePKCS8ToTufKey(wrap.Key)
+			return ParsePKCS8ToTufKey(block.Bytes)
 		}
-		return ParsePKCS8ToTufKey(wrap.Key, []byte(passphrase))
+		return ParsePKCS8ToTufKey(block.Bytes, []byte(passphrase))
 	default:
 		return nil, fmt.Errorf("unsupported key type %q", block.Type)
 	}
@@ -463,23 +456,16 @@ func ExtractPrivateKeyAttributes(pemBytes []byte) (data.RoleName, data.GUN, erro
 	switch block.Type {
 	case "RSA PRIVATE KEY", "EC PRIVATE KEY", "ED25519 PRIVATE KEY":
 		if notary.FIPSEnabled {
-			return "", "", errors.New("unknown key format")
+			return "", "", errors.New("invalid key format")
 		}
-		return data.RoleName(block.Headers["role"]), data.GUN(block.Headers["gun"]), nil
 	case "PRIVATE KEY", "PRIVATE ENCRYPTED KEY":
-		var wrap data.KeyWrap
-		if _, err := asn1.Unmarshal(block.Bytes, &wrap); err != nil {
-			return "", "", errors.New("unable to unmarshal asn1 structure")
-		}
-		return wrap.Role, wrap.GUN, nil
 	default:
 		return "", "", errors.New("unknown key format")
 	}
+	return data.RoleName(block.Headers["role"]), data.GUN(block.Headers["gun"]), nil
 }
 
 // ConvertPrivateKeyToPKCS8 converts a data.PrivateKey to PKCS#8 Format
-// Since PKCS#8 doesn't allow any headers so PKCS#8 is being wrapped in another asn1 format (data.KeyWrap)
-// as DER format with role and gun information.
 func ConvertPrivateKeyToPKCS8(key data.PrivateKey, role data.RoleName, gun data.GUN, passphrase string) ([]byte, error) {
 	var (
 		err       error
@@ -497,16 +483,16 @@ func ConvertPrivateKeyToPKCS8(key data.PrivateKey, role data.RoleName, gun data.
 		return nil, fmt.Errorf("unable to convert to PKCS8 key")
 	}
 
-	b, err := asn1.Marshal(data.KeyWrap{
-		Role: role,
-		GUN:  gun,
-		Key:  der,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("unable to marshal asn1 structure")
+	headers := make(map[string]string)
+	if role != "" {
+		headers["role"] = string(role)
 	}
 
-	return pem.EncodeToMemory(&pem.Block{Bytes: b, Type: blockType}), nil
+	if gun != "" {
+		headers["gun"] = string(gun)
+	}
+
+	return pem.EncodeToMemory(&pem.Block{Bytes: der, Type: blockType, Headers: headers}), nil
 }
 
 // CertToKey transforms a single input certificate into its corresponding

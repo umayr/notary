@@ -38,13 +38,6 @@ func (r RoleName) Parent() RoleName {
 	return RoleName(path.Dir(r.String()))
 }
 
-// KeyWrap holds the PKCS#8 key along with Role and GUN
-type KeyWrap struct {
-	Role RoleName
-	GUN  GUN
-	Key  []byte
-}
-
 // MetadataRoleMapToStringMap generates a map string of bytes from a map RoleName of bytes
 func MetadataRoleMapToStringMap(roles map[RoleName][]byte) map[string][]byte {
 	metadata := make(map[string][]byte)
