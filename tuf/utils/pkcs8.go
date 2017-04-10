@@ -14,8 +14,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/docker/notary/tuf/data"
 	"golang.org/x/crypto/pbkdf2"
+
+	"github.com/docker/notary/tuf/data"
 )
 
 // Copy from crypto/x509
@@ -79,7 +80,7 @@ type pbkdf2Params struct {
 }
 
 type pbkdf2Algorithms struct {
-	IdPBKDF2     asn1.ObjectIdentifier
+	IDPBKDF2     asn1.ObjectIdentifier
 	PBKDF2Params pbkdf2Params
 }
 
@@ -94,7 +95,7 @@ type pbes2Params struct {
 }
 
 type pbes2Algorithms struct {
-	IdPBES2     asn1.ObjectIdentifier
+	IDPBES2     asn1.ObjectIdentifier
 	PBES2Params pbes2Params
 }
 
@@ -151,6 +152,8 @@ func parsePKCS8ToTufKey(der []byte) (data.PrivateKey, error) {
 	return nil, errors.New("unsupported key type")
 }
 
+// ParsePKCS8ToTufKey requires PKCS#8 key in DER format and returns data.PrivateKey
+// Second argument is optional and only provided in case of encrypted keys.
 func ParsePKCS8ToTufKey(der []byte, v ...[]byte) (data.PrivateKey, error) {
 	if v == nil {
 		return parsePKCS8ToTufKey(der)
@@ -163,11 +166,11 @@ func ParsePKCS8ToTufKey(der []byte, v ...[]byte) (data.PrivateKey, error) {
 		return nil, errors.New("pkcs8: only PKCS #5 v2.0 supported")
 	}
 
-	if !privKey.EncryptionAlgorithm.IdPBES2.Equal(oidPBES2) {
+	if !privKey.EncryptionAlgorithm.IDPBES2.Equal(oidPBES2) {
 		return nil, errors.New("pkcs8: only PBES2 supported")
 	}
 
-	if !privKey.EncryptionAlgorithm.PBES2Params.KeyDerivationFunc.IdPBKDF2.Equal(oidPKCS5PBKDF2) {
+	if !privKey.EncryptionAlgorithm.PBES2Params.KeyDerivationFunc.IDPBKDF2.Equal(oidPKCS5PBKDF2) {
 		return nil, errors.New("pkcs8: only PBKDF2 supported")
 	}
 
@@ -282,10 +285,11 @@ func convertTUFKeyToPKCS8Encrypted(priv data.PrivateKey, password []byte) ([]byt
 	pbes2algo := pbes2Algorithms{oidPBES2, pbes2Params{pbkdf2algo, pbkdf2encs}}
 
 	encryptedPkey := encryptedPrivateKeyInfo{pbes2algo, encryptedKey}
-
 	return asn1.Marshal(encryptedPkey)
 }
 
+// ConvertTUFKeyToPKCS8 converts a private key (data.Private) to PKCS#8 and returns in DER format
+// Additional argument is provided in case of an encrypted PKCS#8 key.
 func ConvertTUFKeyToPKCS8(priv data.PrivateKey, v ...[]byte) ([]byte, error) {
 	if v == nil {
 		return convertTUFKeyToPKCS8(priv)
