@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
@@ -206,17 +205,12 @@ func TestKeyOperations(t *testing.T) {
 func testKeyBlockType(t *testing.T, b, password []byte, expectedKeyType string) {
 	block, _ := pem.Decode(b)
 
-	var wrap data.KeyWrap
-	if _, err := asn1.Unmarshal(block.Bytes, &wrap); err != nil {
-		require.NoError(t, err, "unable to unmarshal key")
-	}
-
 	var privKey data.PrivateKey
 	var err error
 	if password == nil {
-		privKey, err = ParsePKCS8ToTufKey(wrap.Key)
+		privKey, err = ParsePKCS8ToTufKey(block.Bytes)
 	} else {
-		privKey, err = ParsePKCS8ToTufKey(wrap.Key, password)
+		privKey, err = ParsePKCS8ToTufKey(block.Bytes, password)
 	}
 	if err != nil {
 		require.NoError(t, err, "unable to parse to pkcs8")
