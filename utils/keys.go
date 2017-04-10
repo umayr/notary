@@ -76,7 +76,6 @@ func ExportKeys(to io.Writer, s Exporter, from string) error {
 	// parse PEM blocks if there are more than one
 	for block, rest := pem.Decode(k); block != nil; block, rest = pem.Decode(rest) {
 		// add from path in a header for later import
-		// TODO(umayr): unmarshal asn1 structure here
 		block.Headers["path"] = from
 		// write serialized PEM
 		err = pem.Encode(to, block)
