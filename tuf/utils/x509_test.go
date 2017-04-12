@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/docker/notary"
 	"github.com/docker/notary/tuf/data"
 	"github.com/stretchr/testify/require"
 )
@@ -271,6 +272,181 @@ func TestECDSAX509PublickeyID(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, tufPrivKey.ID(), tufID)
+}
+
+func TestExtractPrivateKeyAttributes(t *testing.T) {
+	testPKCS1PEM1 := getPKCS1KeyWithRole(t, "unicorn", "rainbow")
+	testPKCS1PEM2 := getPKCS1KeyWithRole(t, "docker", "")
+
+	testPKCS8PEM1 := getPKCS8KeyWithRole(t, "fat", "panda")
+	testPKCS8PEM2 := getPKCS8KeyWithRole(t, "dagger", "")
+
+	// PKCS#1
+	if notary.FIPSEnabled {
+		_, _, err := ExtractPrivateKeyAttributes(testPKCS1PEM1)
+		require.Error(t, err)
+		_, _, err = ExtractPrivateKeyAttributes(testPKCS1PEM2)
+		require.Error(t, err)
+	} else {
+		role, gun, err := ExtractPrivateKeyAttributes(testPKCS1PEM1)
+		require.NoError(t, err)
+		require.EqualValues(t, data.RoleName("unicorn"), role)
+		require.EqualValues(t, data.GUN("rainbow"), gun)
+
+		role, gun, err = ExtractPrivateKeyAttributes(testPKCS1PEM2)
+		require.NoError(t, err)
+		require.EqualValues(t, data.RoleName("docker"), role)
+		require.EqualValues(t, data.GUN(""), gun)
+	}
+
+	// PKCS#8
+	role, gun, err := ExtractPrivateKeyAttributes(testPKCS8PEM1)
+	require.NoError(t, err)
+	require.EqualValues(t, data.RoleName("fat"), role)
+	require.EqualValues(t, data.GUN("panda"), gun)
+
+	role, gun, err = ExtractPrivateKeyAttributes(testPKCS8PEM2)
+	require.NoError(t, err)
+	require.EqualValues(t, data.RoleName("dagger"), role)
+	require.EqualValues(t, data.GUN(""), gun)
+}
+
+func getPKCS1KeyWithRole(t *testing.T, role data.RoleName, gun data.GUN) []byte {
+	var testPEM []byte
+	if gun == "" {
+		testPEM = []byte(fmt.Sprintf(`-----BEGIN RSA PRIVATE KEY-----
+role: %s
+MIIEogIBAAKCAQEAyUIXjsrWRrvPa4Bzp3VJ6uOUGPay2fUpSV8XzNxZxIG/Opdr
++k3EQi1im6WOqF3Y5AS1UjYRxNuRN+cAZeo3uS1pOTuoSupBXuchVw8s4hZJ5vXn
+TRmGb+xY7tZ1ZVgPfAZDib9sRSUsL/gC+aSyprAjG/YBdbF06qKbfOfsoCEYW1OQ
+82JqHzQH514RFYPTnEGpvfxWaqmFQLmv0uMxV/cAYvqtrGkXuP0+a8PknlD2obw5
+0rHE56Su1c3Q42S7L51K38tpbgWOSRcTfDUWEj5v9wokkNQvyKBwbS996s4EJaZd
+7r6M0h1pHnuRxcSaZLYRwgOe1VNGg2VfWzgd5QIDAQABAoIBAF9LGwpygmj1jm3R
+YXGd+ITugvYbAW5wRb9G9mb6wspnwNsGTYsz/UR0ZudZyaVw4jx8+jnV/i3e5PC6
+QRcAgqf8l4EQ/UuThaZg/AlT1yWp9g4UyxNXja87EpTsGKQGwTYxZRM4/xPyWOzR
+mt8Hm8uPROB9aA2JG9npaoQG8KSUj25G2Qot3ukw/IOtqwN/Sx1EqF0EfCH1K4KU
+a5TrqlYDFmHbqT1zTRec/BTtVXNsg8xmF94U1HpWf3Lpg0BPYT7JiN2DPoLelRDy
+a/A+a3ZMRNISL5wbq/jyALLOOyOkIqa+KEOeW3USuePd6RhDMzMm/0ocp5FCwYfo
+k4DDeaECgYEA0eSMD1dPGo+u8UTD8i7ZsZCS5lmXLNuuAg5f5B/FGghD8ymPROIb
+dnJL5QSbUpmBsYJ+nnO8RiLrICGBe7BehOitCKi/iiZKJO6edrfNKzhf4XlU0HFl
+jAOMa975pHjeCoZ1cXJOEO9oW4SWTCyBDBSqH3/ZMgIOiIEk896lSmkCgYEA9Xf5
+Jqv3HtQVvjugV/axAh9aI8LMjlfFr9SK7iXpY53UdcylOSWKrrDok3UnrSEykjm7
+UL3eCU5jwtkVnEXesNn6DdYo3r43E6iAiph7IBkB5dh0yv3vhIXPgYqyTnpdz4pg
+3yPGBHMPnJUBThg1qM7k6a2BKHWySxEgC1DTMB0CgYAGvdmF0J8Y0k6jLzs/9yNE
+4cjmHzCM3016gW2xDRgumt9b2xTf+Ic7SbaIV5qJj6arxe49NqhwdESrFohrKaIP
+kM2l/o2QaWRuRT/Pvl2Xqsrhmh0QSOQjGCYVfOb10nAHVIRHLY22W4o1jk+piLBo
+a+1+74NRaOGAnu1J6/fRKQKBgAF180+dmlzemjqFlFCxsR/4G8s2r4zxTMXdF+6O
+3zKuj8MbsqgCZy7e8qNeARxwpCJmoYy7dITNqJ5SOGSzrb2Trn9ClP+uVhmR2SH6
+AlGQlIhPn3JNzI0XVsLIloMNC13ezvDE/7qrDJ677EQQtNEKWiZh1/DrsmHr+irX
+EkqpAoGAJWe8PC0XK2RE9VkbSPg9Ehr939mOLWiHGYTVWPttUcum/rTKu73/X/mj
+WxnPWGtzM1pHWypSokW90SP4/xedMxludvBvmz+CTYkNJcBGCrJumy11qJhii9xp
+EMl3eFOJXjIch/wIesRSN+2dGOsl7neercjMh1i9RvpCwHDx/E0=
+-----END RSA PRIVATE KEY-----
+`, role))
+	} else {
+		testPEM = []byte(fmt.Sprintf(`-----BEGIN RSA PRIVATE KEY-----
+gun: %s
+role: %s
+MIIEogIBAAKCAQEAyUIXjsrWRrvPa4Bzp3VJ6uOUGPay2fUpSV8XzNxZxIG/Opdr
++k3EQi1im6WOqF3Y5AS1UjYRxNuRN+cAZeo3uS1pOTuoSupBXuchVw8s4hZJ5vXn
+TRmGb+xY7tZ1ZVgPfAZDib9sRSUsL/gC+aSyprAjG/YBdbF06qKbfOfsoCEYW1OQ
+82JqHzQH514RFYPTnEGpvfxWaqmFQLmv0uMxV/cAYvqtrGkXuP0+a8PknlD2obw5
+0rHE56Su1c3Q42S7L51K38tpbgWOSRcTfDUWEj5v9wokkNQvyKBwbS996s4EJaZd
+7r6M0h1pHnuRxcSaZLYRwgOe1VNGg2VfWzgd5QIDAQABAoIBAF9LGwpygmj1jm3R
+YXGd+ITugvYbAW5wRb9G9mb6wspnwNsGTYsz/UR0ZudZyaVw4jx8+jnV/i3e5PC6
+QRcAgqf8l4EQ/UuThaZg/AlT1yWp9g4UyxNXja87EpTsGKQGwTYxZRM4/xPyWOzR
+mt8Hm8uPROB9aA2JG9npaoQG8KSUj25G2Qot3ukw/IOtqwN/Sx1EqF0EfCH1K4KU
+a5TrqlYDFmHbqT1zTRec/BTtVXNsg8xmF94U1HpWf3Lpg0BPYT7JiN2DPoLelRDy
+a/A+a3ZMRNISL5wbq/jyALLOOyOkIqa+KEOeW3USuePd6RhDMzMm/0ocp5FCwYfo
+k4DDeaECgYEA0eSMD1dPGo+u8UTD8i7ZsZCS5lmXLNuuAg5f5B/FGghD8ymPROIb
+dnJL5QSbUpmBsYJ+nnO8RiLrICGBe7BehOitCKi/iiZKJO6edrfNKzhf4XlU0HFl
+jAOMa975pHjeCoZ1cXJOEO9oW4SWTCyBDBSqH3/ZMgIOiIEk896lSmkCgYEA9Xf5
+Jqv3HtQVvjugV/axAh9aI8LMjlfFr9SK7iXpY53UdcylOSWKrrDok3UnrSEykjm7
+UL3eCU5jwtkVnEXesNn6DdYo3r43E6iAiph7IBkB5dh0yv3vhIXPgYqyTnpdz4pg
+3yPGBHMPnJUBThg1qM7k6a2BKHWySxEgC1DTMB0CgYAGvdmF0J8Y0k6jLzs/9yNE
+4cjmHzCM3016gW2xDRgumt9b2xTf+Ic7SbaIV5qJj6arxe49NqhwdESrFohrKaIP
+kM2l/o2QaWRuRT/Pvl2Xqsrhmh0QSOQjGCYVfOb10nAHVIRHLY22W4o1jk+piLBo
+a+1+74NRaOGAnu1J6/fRKQKBgAF180+dmlzemjqFlFCxsR/4G8s2r4zxTMXdF+6O
+3zKuj8MbsqgCZy7e8qNeARxwpCJmoYy7dITNqJ5SOGSzrb2Trn9ClP+uVhmR2SH6
+AlGQlIhPn3JNzI0XVsLIloMNC13ezvDE/7qrDJ677EQQtNEKWiZh1/DrsmHr+irX
+EkqpAoGAJWe8PC0XK2RE9VkbSPg9Ehr939mOLWiHGYTVWPttUcum/rTKu73/X/mj
+WxnPWGtzM1pHWypSokW90SP4/xedMxludvBvmz+CTYkNJcBGCrJumy11qJhii9xp
+EMl3eFOJXjIch/wIesRSN+2dGOsl7neercjMh1i9RvpCwHDx/E0=
+-----END RSA PRIVATE KEY-----
+`, gun, role))
+	}
+
+	return testPEM
+}
+
+func getPKCS8KeyWithRole(t *testing.T, role data.RoleName, gun data.GUN) []byte {
+	var testPEM []byte
+	if gun == "" {
+		testPEM = []byte(fmt.Sprintf(`-----BEGIN PRIVATE KEY-----
+role: %s
+MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCo23n5TrVazr9C
+DniRin4uSxx9w4tDtp5WbvACE0iWw2T0l6GHPnKa6aBFmJ3GxRQtwveM+cQVub3A
+KjIS7OdJpeQA5fOrpnC5dgv5l/DbmZ5SHrzAm9JgYmrw7Uj1dyeQ6jpPra4ChF7P
+YOIcoeTp4eWOSJzztZQyftnBLVRgTIYXXX1kVZVfWVFsT2FQk7ei9Gw/UnslyVQd
+HZxYa98SAmsoQ5YZb3I11Tk1LHsCS6Py9p6tL3vdyW9rJioqNu2RhO/WwhqiSttd
+/xTanwJRlD5IWE32CU3II4UtaZZrYDeimRekVV7zqwgTBAzNsmatZhD1o6E9LZ9D
+JFhKwwDXAgMBAAECggEAbqa0PV0IlqMYze6xr53zpd5uozM61XqcM8Oq35FHZhRQ
+2b9riDax3zXtYu3pplGLMZmrouQhTKNU5tI/0gsQXUCqMrR9gyQkhkQHAN5CZYU7
+LFEcG5OAvsx/i7XSs5gLg3kaERCdEOUxQ/AW+/BTE7iGN0D6KPH6VUSu6VoNCrTK
+PmYvgta7hwebnvo65/OAc4inp9C19FUkhcNbaCKduWBgUt348+IzVEw9H8+PrdVZ
+dYGfVXAsDFY3zz0ThUbaZ52XS1pCCQ1Df9bQnTgqJNc+u1xQHLYAageKS83uAbtS
+nYjBFFuxeRR2FA1n8echCWQV+16Kqq31U1E2yLfWcQKBgQDSoT73pO9h/yN5myqu
+XxhAC+Ndas0DTl4pmVPpybpenJerba/0KCfYpcSFHAdkXZ1DYL7U+9uh5NRul09f
+WdjayFjn0vv63rwX+PGi1yPHTIv5kLvjYXJtaxzxSzQivYMPmD/7QX4tEsUkpJ8k
+90vMSS/C5ieWbpFwWVvEjFbqHQKBgQDNOsTq6USE3R8p4lj9Ror/waUuWVdzZnm3
+uZGJw3WzvzaXmqLSfVHntUnD8TPHgk3WZxDhrF73POMADkl9IN/JPI150/Uo6YJo
+qYGoZr0mmnEZxVCkwODz5C9icnyjklcRdIRM6eljhFMQDVEacDkptsntHUyIdQZc
+L2eLNUfEgwKBgHxy7UNg3lemag110rgIU8mzvHj7m3oymYw2nc/qcwVnvG17d5Tp
+DPICr6R+NRfl//9JcDdjQBfdnm5hVHJgIbLS4UTH8j390GDRo+O0/dzJq4KfM4Rb
+lUJ1ITqoVnuYQZG7QUJxJd330yedZLJwswZWz7N2TTmixqf9BC2TRd85AoGAN+Qh
+bLhKaMSvkACMq61ifXSHP7AlGNB3pYlsEVCh5WnVvEPow9pNTAUbKbmumE7sU8+N
+0WfYFQ0H5SP+74zcZTmQbfVDdvjhAw/mt64DJVg6JQKPi87bdJBYNz9mokVgYOiS
+fz/Ux71pwZ1e0QxvBOU66NBp31+/c6uVT1wbR3ECgYAdye1+UPpS9Dn89g6Ks0kv
+UaFKykXu7vY2uxiNqhmWzze4iq5wmIHmEwc6+rVMluXQPAME7Iya3mBmto9AHQ/n
+/ka+fGoaUgAojCLZW5DZcelIETw+Dk+95vyyAUsWfAvn4nKo4/rkBXcSHlvgElzq
+SorPiBWYosFB6jqUTXew2w==
+-----END PRIVATE KEY-----
+`, role))
+	} else {
+		testPEM = []byte(fmt.Sprintf(`-----BEGIN PRIVATE KEY-----
+gun: %s
+role: %s
+MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCo23n5TrVazr9C
+DniRin4uSxx9w4tDtp5WbvACE0iWw2T0l6GHPnKa6aBFmJ3GxRQtwveM+cQVub3A
+KjIS7OdJpeQA5fOrpnC5dgv5l/DbmZ5SHrzAm9JgYmrw7Uj1dyeQ6jpPra4ChF7P
+YOIcoeTp4eWOSJzztZQyftnBLVRgTIYXXX1kVZVfWVFsT2FQk7ei9Gw/UnslyVQd
+HZxYa98SAmsoQ5YZb3I11Tk1LHsCS6Py9p6tL3vdyW9rJioqNu2RhO/WwhqiSttd
+/xTanwJRlD5IWE32CU3II4UtaZZrYDeimRekVV7zqwgTBAzNsmatZhD1o6E9LZ9D
+JFhKwwDXAgMBAAECggEAbqa0PV0IlqMYze6xr53zpd5uozM61XqcM8Oq35FHZhRQ
+2b9riDax3zXtYu3pplGLMZmrouQhTKNU5tI/0gsQXUCqMrR9gyQkhkQHAN5CZYU7
+LFEcG5OAvsx/i7XSs5gLg3kaERCdEOUxQ/AW+/BTE7iGN0D6KPH6VUSu6VoNCrTK
+PmYvgta7hwebnvo65/OAc4inp9C19FUkhcNbaCKduWBgUt348+IzVEw9H8+PrdVZ
+dYGfVXAsDFY3zz0ThUbaZ52XS1pCCQ1Df9bQnTgqJNc+u1xQHLYAageKS83uAbtS
+nYjBFFuxeRR2FA1n8echCWQV+16Kqq31U1E2yLfWcQKBgQDSoT73pO9h/yN5myqu
+XxhAC+Ndas0DTl4pmVPpybpenJerba/0KCfYpcSFHAdkXZ1DYL7U+9uh5NRul09f
+WdjayFjn0vv63rwX+PGi1yPHTIv5kLvjYXJtaxzxSzQivYMPmD/7QX4tEsUkpJ8k
+90vMSS/C5ieWbpFwWVvEjFbqHQKBgQDNOsTq6USE3R8p4lj9Ror/waUuWVdzZnm3
+uZGJw3WzvzaXmqLSfVHntUnD8TPHgk3WZxDhrF73POMADkl9IN/JPI150/Uo6YJo
+qYGoZr0mmnEZxVCkwODz5C9icnyjklcRdIRM6eljhFMQDVEacDkptsntHUyIdQZc
+L2eLNUfEgwKBgHxy7UNg3lemag110rgIU8mzvHj7m3oymYw2nc/qcwVnvG17d5Tp
+DPICr6R+NRfl//9JcDdjQBfdnm5hVHJgIbLS4UTH8j390GDRo+O0/dzJq4KfM4Rb
+lUJ1ITqoVnuYQZG7QUJxJd330yedZLJwswZWz7N2TTmixqf9BC2TRd85AoGAN+Qh
+bLhKaMSvkACMq61ifXSHP7AlGNB3pYlsEVCh5WnVvEPow9pNTAUbKbmumE7sU8+N
+0WfYFQ0H5SP+74zcZTmQbfVDdvjhAw/mt64DJVg6JQKPi87bdJBYNz9mokVgYOiS
+fz/Ux71pwZ1e0QxvBOU66NBp31+/c6uVT1wbR3ECgYAdye1+UPpS9Dn89g6Ks0kv
+UaFKykXu7vY2uxiNqhmWzze4iq5wmIHmEwc6+rVMluXQPAME7Iya3mBmto9AHQ/n
+/ka+fGoaUgAojCLZW5DZcelIETw+Dk+95vyyAUsWfAvn4nKo4/rkBXcSHlvgElzq
+SorPiBWYosFB6jqUTXew2w==
+-----END PRIVATE KEY-----
+`, gun, role))
+	}
+
+	return testPEM
 }
 
 func TestValidateCertificateWithSHA1(t *testing.T) {
