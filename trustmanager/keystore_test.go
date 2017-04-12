@@ -248,6 +248,9 @@ QvS5quTEllrvrVuWfhpsjl/l
 // TestGetLegacyKey ensures we can still load keys where the role
 // is stored as part of the filename (i.e. <hexID>_<role>.key
 func TestGetLegacyKey(t *testing.T) {
+	if notary.FIPSEnabled {
+		t.Skip("skip backward compatibility test in FIPS mode")
+	}
 	testData := []byte(`-----BEGIN RSA PRIVATE KEY-----
 MIIEogIBAAKCAQEAyUIXjsrWRrvPa4Bzp3VJ6uOUGPay2fUpSV8XzNxZxIG/Opdr
 +k3EQi1im6WOqF3Y5AS1UjYRxNuRN+cAZeo3uS1pOTuoSupBXuchVw8s4hZJ5vXn
