@@ -54,7 +54,7 @@ func testConvertKeyToPKCS8(t *testing.T, privKey data.PrivateKey, v ...[]byte) {
 
 func TestParsePKCS8ToTufKey(t *testing.T) {
 	testRSAKeyParsing(t)
-	testECKeyParsing(t)
+	testECKeyParsingAndConversion(t)
 	testEDKeyParsing(t)
 }
 
@@ -134,15 +134,47 @@ u+rmy9/CMkLtFQM4Hlbb75WeFA==
 	require.EqualValues(t, key.Private(), encryptedKey.Private())
 }
 
-func testECKeyParsing(t *testing.T) {
-	testECPEM := []byte(`-----BEGIN PRIVATE KEY-----
+func testECKeyParsingAndConversion(t *testing.T) {
+	// Unencrypted keys
+	testECP224PEM := []byte(`-----BEGIN PRIVATE KEY-----
+MHgCAQAwEAYHKoZIzj0CAQYFK4EEACEEYTBfAgEBBBxdqDSBsFWIAiQ99sRSQZrb
+IFczI8UIRM7FD/SNoTwDOgAETbjLZYByEmU3oALoLIz4Xr814S8jMs3cAfJuywm/
+kLGZ7y/1i56SXpTOByu6LHXrRokEi4hWQAc=
+-----END PRIVATE KEY-----
+`)
+	testECP256PEM := []byte(`-----BEGIN PRIVATE KEY-----
 MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgiwt5YfD/xQdVwJZ0
 2TpiJDQQ8DRHYVeWzIscya52BvChRANCAAT58IHVQJwbo3/MS/dFjh+xM85gVydX
 xY+wxYDkaougZDPIgvu3+bQZ4xYSAnCGX7UJIiLloKuuuvbmXQlnSGqw
 -----END PRIVATE KEY-----
 `)
+	testECP384PEM := []byte(`-----BEGIN PRIVATE KEY-----
+MIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDCnjVESo9F+BLL4ZSt1
+/ZU14MYlozCa7OyjdcdFjwMSajUZ4N0HVoBpJoeFh8DKaJ2hZANiAAQ4sTZRVUFU
+p4IXBI9QEuwWh0Lsd/uUtZkpwXrjC4hpCQI3am7QC5Ct83VAtQ1WXBYg7EjIYNfi
+CDbvJdq1y0IhdY138OQvsTaewiuYHUvRwjljxiSjpNEOB6AoD36FlqY=
+-----END PRIVATE KEY-----
+`)
+	testECP521PEM := []byte(`-----BEGIN PRIVATE KEY-----
+MIHuAgEAMBAGByqGSM49AgEGBSuBBAAjBIHWMIHTAgEBBEIB0dZtwbNAy6K2iJF0
+P9cTcwv2XnSCyeiIcOW/IG3I09pklXQNCw1igQdKSjZLZZRVS4OZMvuG774OPq9j
+F7m/tkihgYkDgYYABADN4kHmO0/+mIHmIuC6id/lX04mZ9wZovU102l4VUdZA3e6
+tZWDMdS2D3oqwhud2xCoHNw2ShxspzUISd/srH1pPAA3L2r2eZ6axrEqz1unbdBy
+q1SyrsbtvDEJsP8STxiK3RSL9r00gqwlK44lp6dYQU3zd6IzS/69ACj/nmfX+YE4
+AA==
+-----END PRIVATE KEY-----
+`)
 
-	testEncryptedECPEM := []byte(`-----BEGIN ENCRYPTED PRIVATE KEY-----
+	// Encrypted keys
+	testEncryptedECP224PEM := []byte(`-----BEGIN ENCRYPTED PRIVATE KEY-----
+MIHOMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAi3V1XpIGNIWgICCAAw
+HQYJYIZIAWUDBAEqBBBRBo5atWmtyMj9dB0JuDweBIGAnvt+6dyx/TPitJ4akxn+
+1SSB8MljywEF69DVqmwT+SUDcbrFzY9+gIXcuzqXB942HGvCdJKciE7JHvta8pvk
+zg24aOy5ISqZoginRPhKTDpeXGOwMT3CTN7ZUi0QwlqK9gzVFOu3rdP/PZeiYY/6
+Dv5xvIXk7nJkFsmY02ORIWc=
+-----END ENCRYPTED PRIVATE KEY-----
+`)
+	testEncryptedECP256PEM := []byte(`-----BEGIN ENCRYPTED PRIVATE KEY-----
 MIHeMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAhau2ksQB01lgICCAAw
 HQYJYIZIAWUDBAEqBBABQd7kN7aKsbD62UQ8QQl7BIGQO4cuxkugQZLMLUPV39Jl
 24jAl0lFLdvAPWZoD9Z5jCa7Fbw/uFza/PVZkScHv6LC5BAah4+NmyydiJiIbP4D
@@ -150,14 +182,82 @@ HQYJYIZIAWUDBAEqBBABQd7kN7aKsbD62UQ8QQl7BIGQO4cuxkugQZLMLUPV39Jl
 P2RiPFJIOaO8pEegcJ5EL++ZJXDaX0UAi3X7E1tS27ye
 -----END ENCRYPTED PRIVATE KEY-----
 `)
+	testEncryptedECP384PEM := []byte(`-----BEGIN ENCRYPTED PRIVATE KEY-----
+MIIBDjBJBgkqhkiG9w0BBQ0wPDAbBgkqhkiG9w0BBQwwDgQIDJdc8YJtJ98CAggA
+MB0GCWCGSAFlAwQBKgQQshQULAfSfMLjulJQe9mNdASBwCuFuD9JdoL3W+sTpITh
+q1HInr2MUj8KJSYq5dHkx3J4C694NL8T2w6NFrTetP5cOtitjAKHe49+jvsJ4wCE
+taLNTjqnPuKfRYloHmZyLvuQ0G7Ntij1BGt2NjWByM4Xtks/+No8LmQyLLMD0hpN
+/hsvOCJcFPj4ehpeZrtPGQVSm71YmWN2wVLwaSydoU2fBHEvAplNgmbV6aOHknVo
+M4bPjyNFnxa3Gny/q4d3wbBg+eAU9OmTw/fH1ghzCA6Lag==
+-----END ENCRYPTED PRIVATE KEY-----
+`)
+	testEncryptedECP521PEM := []byte(`-----BEGIN ENCRYPTED PRIVATE KEY-----
+MIIBTzBJBgkqhkiG9w0BBQ0wPDAbBgkqhkiG9w0BBQwwDgQIHH+pqgopXh8CAggA
+MB0GCWCGSAFlAwQBKgQQ6be9c8LDhP5RSd2S5fF/2gSCAQB+kjFu2FTE0VGVtgDY
+euSik/7+a3EQw4cP4BtbN7As0zqvFelN3v1QKyc3Em7SccyD0Ch3JbZ9swJZi3AG
+YcrJd5mbdHdAj2mHXUJqAoG3wseSTroctVlsaazB6WqyqqVe6p6++MO7GikxrH8n
+93LRhzJWZo0NfgRg7RmlbJiHsJuamgUUEvFcwJvGq74dGnRyUnYGPeq9EabOvZRp
+2ZrPWF2TBgKUY4PWN4U620w+TLP3ZJ5Gxr+yKo52CRy7mUKmNsdC4sEYntQ83Ysf
+O+SebXm9E5ulOuGTwR5r+P/+CClIm9PzXzRM02H3b8WliCt51Rm0KFEoI/RaTwGd
+dmeY
+-----END ENCRYPTED PRIVATE KEY-----
+`)
 
-	block, _ := pem.Decode(testECPEM)
+	// ECP224
+	block, _ := pem.Decode(testECP224PEM)
 	key, err := ParsePKCS8ToTufKey(block.Bytes)
 	require.NoError(t, err, "could not parse pkcs8 to tuf key")
 
-	block, _ = pem.Decode(testEncryptedECPEM)
+	block, _ = pem.Decode(testEncryptedECP224PEM)
 	encryptedKey, err := ParsePKCS8ToTufKey(block.Bytes, []byte("poonies"))
 	require.NoError(t, err, "could not parse encrypted pkcs8 to tuf key")
+	_, err = ConvertPrivateKeyToPKCS8(encryptedKey, data.RoleName(""), data.GUN(""), "poonies")
+	require.NoError(t, err, "could not convert encrypted key to pkcs8")
+
+	require.Equal(t, "ecdsa", key.Algorithm())
+	require.Equal(t, "ecdsa", encryptedKey.Algorithm())
+	require.EqualValues(t, key.Private(), encryptedKey.Private())
+
+	// ECP256
+	block, _ = pem.Decode(testECP256PEM)
+	key, err = ParsePKCS8ToTufKey(block.Bytes)
+	require.NoError(t, err, "could not parse pkcs8 to tuf key")
+
+	block, _ = pem.Decode(testEncryptedECP256PEM)
+	encryptedKey, err = ParsePKCS8ToTufKey(block.Bytes, []byte("poonies"))
+	require.NoError(t, err, "could not parse encrypted pkcs8 to tuf key")
+	_, err = ConvertPrivateKeyToPKCS8(encryptedKey, data.RoleName(""), data.GUN(""), "poonies")
+	require.NoError(t, err, "could not convert encrypted key to pkcs8")
+
+	require.Equal(t, "ecdsa", key.Algorithm())
+	require.Equal(t, "ecdsa", encryptedKey.Algorithm())
+	require.EqualValues(t, key.Private(), encryptedKey.Private())
+
+	// ECP384
+	block, _ = pem.Decode(testECP384PEM)
+	key, err = ParsePKCS8ToTufKey(block.Bytes)
+	require.NoError(t, err, "could not parse pkcs8 to tuf key")
+
+	block, _ = pem.Decode(testEncryptedECP384PEM)
+	encryptedKey, err = ParsePKCS8ToTufKey(block.Bytes, []byte("poonies"))
+	require.NoError(t, err, "could not parse encrypted pkcs8 to tuf key")
+	_, err = ConvertPrivateKeyToPKCS8(encryptedKey, data.RoleName(""), data.GUN(""), "poonies")
+	require.NoError(t, err, "could not convert encrypted key to pkcs8")
+
+	require.Equal(t, "ecdsa", key.Algorithm())
+	require.Equal(t, "ecdsa", encryptedKey.Algorithm())
+	require.EqualValues(t, key.Private(), encryptedKey.Private())
+
+	// ECP521
+	block, _ = pem.Decode(testECP521PEM)
+	key, err = ParsePKCS8ToTufKey(block.Bytes)
+	require.NoError(t, err, "could not parse pkcs8 to tuf key")
+
+	block, _ = pem.Decode(testEncryptedECP521PEM)
+	encryptedKey, err = ParsePKCS8ToTufKey(block.Bytes, []byte("poonies"))
+	require.NoError(t, err, "could not parse encrypted pkcs8 to tuf key")
+	_, err = ConvertPrivateKeyToPKCS8(encryptedKey, data.RoleName(""), data.GUN(""), "poonies")
+	require.NoError(t, err, "could not convert encrypted key to pkcs8")
 
 	require.Equal(t, "ecdsa", key.Algorithm())
 	require.Equal(t, "ecdsa", encryptedKey.Algorithm())
