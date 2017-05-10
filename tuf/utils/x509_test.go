@@ -122,6 +122,10 @@ func TestKeyOperations(t *testing.T) {
 	// Check to see the RSA key type
 	testKeyBlockType(t, rsaPEM, nil, "rsa")
 
+	// Try to decode garbage bytes
+	_, err = ParsePEMPrivateKey([]byte("Knock knock; it's Bob."), "")
+	require.Error(t, err)
+
 	// Decode our ED Key
 	decodedEDKey, err := ParsePEMPrivateKey(edPEM, "")
 	require.NoError(t, err)
@@ -280,6 +284,10 @@ func TestExtractPrivateKeyAttributes(t *testing.T) {
 
 	testPKCS8PEM1 := getPKCS8KeyWithRole(t, "fat", "panda")
 	testPKCS8PEM2 := getPKCS8KeyWithRole(t, "dagger", "")
+
+	// Try garbage bytes
+	_, _, err := ExtractPrivateKeyAttributes([]byte("Knock knock; it's Bob."))
+	require.Error(t, err)
 
 	// PKCS#1
 	if notary.FIPSEnabled {
