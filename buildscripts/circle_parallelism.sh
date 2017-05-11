@@ -2,7 +2,7 @@
 
 set -e
 case $CIRCLE_NODE_INDEX in
-0) docker run --rm -e NOTARY_BUILDTAGS=pkcs11 --env-file buildscripts/env.list --user notary notary_client bash -c "make ci && codecov"
+0) docker run --rm -e NOTARY_BUILDTAGS="'pkcs11 fips'" --env-file buildscripts/env.list --user notary notary_client bash -c "make ci && codecov"
    ;;
 1) docker run --rm -e NOTARY_BUILDTAGS=none --env-file buildscripts/env.list --user notary notary_client bash -c "make ci && codecov"
    ;;
