@@ -22,11 +22,11 @@ func TestConvertTUFKeyToPKCS8(t *testing.T) {
 	require.NoError(t, err)
 
 	testConvertKeyToPKCS8(t, testRSAKey)
-	testConvertKeyToPKCS8(t, testRSAKey, []byte("poonies"))
+	testConvertKeyToPKCS8(t, testRSAKey, []byte("ponies"))
 	testConvertKeyToPKCS8(t, testECKey)
-	testConvertKeyToPKCS8(t, testECKey, []byte("poonies"))
+	testConvertKeyToPKCS8(t, testECKey, []byte("ponies"))
 	testConvertKeyToPKCS8(t, testEDKey)
-	testConvertKeyToPKCS8(t, testEDKey, []byte("poonies"))
+	testConvertKeyToPKCS8(t, testEDKey, []byte("ponies"))
 }
 
 func testConvertKeyToPKCS8(t *testing.T, privKey data.PrivateKey, v ...[]byte) {
@@ -90,34 +90,34 @@ oQSGi2o00tBJXEiEPmsJK2HL
 `)
 
 	testEncryptedRSAPEM := []byte(`-----BEGIN ENCRYPTED PRIVATE KEY-----
-MIIFHzBJBgkqhkiG9w0BBQ0wPDAbBgkqhkiG9w0BBQwwDgQI9VYsMyTwKmwCAggA
-MB0GCWCGSAFlAwQBKgQQ86aS7qx+tL8SXCyh9jU9PASCBNDsJuZlBaoUc41IwNwS
-eRtEAnjWQI2Aw/wEbo9I9xk2o3G5sTlUitpYfg5r4OjetqAcOietML/fT1XG7Wiv
-6s9WBUsMZ1Q+ekccH3WbC4gP/yqcrDsoxUnAjHSyrFHsPamM7snZahwYALBJHd7x
-kihCuxUOfCoI+nxhwnves5RJMYnvEizzJ58RonY9nr8jmbDHZy9nObyQqHOT0Jt9
-X2xaCp+giZfPzkf1zyywf+VCMfNCDkpMiqjz5IDuk9ZignCTbvG8Zdnk6VFYaiif
-o+12KjcXxYpYPDunADNPzu1xM90MpF9gZTyR2ZCnpiR0yqwMOVAQIUmq79kX03uw
-RWMcbiiwCP0ZMA5GGO1+M0LQf+XVFs7zQdhebDrTVcEmWVoFpH8Rgn671QDlc2tY
-m7KYgQ103oi8HpvtMJeqSMY7HtMClwXMJyCxUn6DQMiDNVx0FnBRFJWwY3Ji/Fs4
-xmfnGF/JD+Tx35JxUKdBgqAU/OPUDbrg/Vcivj5M7BzaLA+LpV+IbFBkVGmE8Zuc
-jVsJaGHsEdiAUhsV60I47/LVUp+MC2SdxaEdlUI8MCi1gspU9mKvc0OdCdefLBm1
-V4xQY2CmiQZ4q9lmUz/kkEY0itMZ7WeeQ6v63uSn+WmZgmkzlQ4Qf5HKmNTmWAKq
-g9IkLwaRd9OnXvqKPOcZLOma4vRVyNq91+VWhS6g1zKGGWV52NI5RnCaOJIJs+as
-gJCi9gFDR1yqt6W9odQyV5ttT9OCY3Cl/KXhQsWnJzFM3lys0N4gq0qQYIwnzBla
-L4r+m7VUtD6pe2DCxiF9ShNaYcQvhatz7mRKQJGPWVubbTYoodtAZYBcHeMe922/
-gtkhwZ6w6txIfBQ8ptc7hZuhTj74l3bh9ENwUEAobecwHA/aKsyAWxm6YdxO/WAu
-RiufbuadaCUywrwPFuxsnV529clFIT4gc8XCqQ4VHtqJIc3XJ97WAvHDiSE8fxMM
-P1z2t93ZkpxD+ivV+l2EhabJ8xpReWo4Tof78rnNhTC9W4qS1fvlv8peHvhhnrG9
-w6PMHXzjlVXDBYh63trCcA1MqxwMfIcZHI3++uonP/jS27dmMZYSkfYDJH4nmdL7
-ZMUR9ruO8sljtMIRzfK000/+qNcAx4vZSJ94QwjCSCpwEX5VgO+kp+2h66XPIHgb
-zYX/Xw5l76fQYQHNtE5GQJg+APiu5I5uFibZi/dJqwQEdrIZX6b/gfEogkkns6Ug
-cdU/IK3RG8lf0Rh3X0BIJEQVBKmPewzMq2GzG342CHOTO4kLw0RHwOJmqhK0nS8U
-c0U7iBLFMPglQ2fQz9izvEIaezzJVX7usyMxfQBm5J0qsQYDCFmCsdP1wzMGLYce
-U9bJpFzkiBfaQRucvtTJpQ7PEVLYCg40CGQGpHFrhzeYAO19TQGZolkv6xcYrYmg
-PY+2QtRt4EfaacNpxSJcrCYFT81OP6UV0x8XSvdFtAGbf5PjChFDTsoAkbNSVrd2
-NREZMhxFATh3Ek9y/2nxo8pDZ1N0Vid6sOg5dtryB7p9ZZgczleY7B8xaLsoCN4y
-6T1wYok7Pg9inKoB4J3yun4Td85Xwo8aT0aulX/oN6XjZt3ZjjtK+RXoZMfARAJ1
-u+rmy9/CMkLtFQM4Hlbb75WeFA==
+MIIFHzBJBgkqhkiG9w0BBQ0wPDAbBgkqhkiG9w0BBQwwDgQIl+qYwi/xfGACAggA
+MB0GCWCGSAFlAwQBKgQQT0TeNa0Rap4ngC1Xo5lEKwSCBNDVrsI+c8fmlsPfi98Q
+AwIaR62VaolrBjcGvczqFoGMcJs2gcmMOdXBxCQua2E7EAAxnGKUjjkRH4ZyDdaC
+hBgEejJ04pXTuhoi9eyuDgi6tVFW+LGmRo0RRQDm5VrB5x1hUFn2EczBnxWoh/Fv
+IiaIetdIwGdVwuXyorQzrIqkv7/y2HMuokOXQjWudjK1rNLEi5dce7hgengYGg23
+xUiPIPGghkegjguFX/Kkn2+V+RtKAZtjfO6x5gr35EnFZe5FR0zhHPrwwIHm+YCl
+4KEJIB3fchgUr8xOIB/WI1YRsubf2mir8SGY1iyePZ3Ya44xian2HpbRPxnHV7xF
+FE34p4dzbuWtWBdJCaLWu4sXvPVujf0gxLRRFwskvnMUOWj12ZZvwQtS+hbVcuTC
+95J8douCiuM65QOd4uVUdNPQftq6w2F2+V+m9cFUbFuztsCywuDuu7BM6z8ir5JV
+GYq5FK5WIWio+EYSUkGhvrwWxFAdwyjTPVKWS8xhyhYfV38q+MpoKT8rbDDi6SbP
+XQmtnm26du1C2Esuhd7XsosUBzsT7LENyRQQ/ECtCgJzw/iDGnRPeJW/hGp+Jwot
+sWE4MOXbOjHl0kU4RSHwYuZ7AIixeJp7BrOFVQjyUlciRtxK0Qd0dSfeyGT7MRsD
+IxU6jOFALGkSeDQGIkVLRUzqVGEWz+rMy7WpxsPqCw6H7mGXPkVgK4G4WRFGlfJo
+MpYgSLfnHbh/HL7R5iJSp0GSXd8b3EkOSQXuJM6wJOoXyvnz9UXMeyQcev3fRi7g
+XJoj38g410f8+8SIYKUbA629qhbpFn9C3U0pGIqqOBWvkdVYJJf7fxew0eD4ByB1
+sZEwRd7iMrH+Iivq4luGK2DpVf0JcyhBOqMTK0PpnIvWFwDTleQ2reyOH4SgfRCm
+q+tuECSCWvkmzCcSODwZM/h2A6GtmkdBYoFP0l1KEgInvTG3eniOVYtq4G5SDk1J
+nW9JE7egnk56Hg6k9gYwfKwvBOO8l10SO9SEXkD+PXVPMHaaYNhCgdL+s/509TWt
+hNvfgplT1A+Q7tMnNYK9D9ZmQvsVhmA2QPhFxJNydvaIggoc5uXDedIc5sX6lIBK
+kKUwQaeNoM5JhnG9Dfy0UKoJSLvo43KWeJRkW5guuqlmUcr5blGDwXSXnqKofY+1
+XomqtbZf77QstIp0LXG3x2bkxJxERC6UOcZz3mOh46eh52WFOztJ2nKc6v64aiPs
+x0QqEkE/7cTT3ntKuvXZliFEMb9sTy5DJ+tm3pOpSC6XaOAFkCjvn9JllF+hCeEh
+2jtMBZmpcOKrQpU//q540IbIZtbBR4zrziyMAz1Nhdsx+ziFeRsUeX3cEscQmTgt
+3RDskN6xY/y6GBQcJ9sglnZIeAoD3WKsAUHJsbDJ2Cev+HtUpb/Ki/1xnSbw6wpC
+5bkcOcVwdPlJ7Cz3nzCYN50YADmZBhGJEi3G+bEH31UdtuCe4/qkNaKsRxitwjxg
+JkHt3S7Yw/wvg0WmRfR6cNXUpzqfbldJMfFapKKVNIesrqhZL8JAHNbF+wKFTeSr
+Bsy4+8LUtpF26yx4+mTHMEPylWc1s6stNONnMcOCxMHdolbA7isX9JDN6Zr/yAtN
+By5Wk9hG6JdPUxl/YkhZUCdKxg==
 -----END ENCRYPTED PRIVATE KEY-----
 `)
 
@@ -126,7 +126,7 @@ u+rmy9/CMkLtFQM4Hlbb75WeFA==
 	require.NoError(t, err, "could not parse pkcs8 to tuf key")
 
 	block, _ = pem.Decode(testEncryptedRSAPEM)
-	encryptedKey, err := ParsePKCS8ToTufKey(block.Bytes, []byte("poonies"))
+	encryptedKey, err := ParsePKCS8ToTufKey(block.Bytes, []byte("ponies"))
 	require.NoError(t, err, "could not parse encrypted pkcs8 to tuf key")
 
 	require.Equal(t, "rsa", key.Algorithm())
@@ -167,39 +167,39 @@ AA==
 
 	// Encrypted keys
 	testEncryptedECP224PEM := []byte(`-----BEGIN ENCRYPTED PRIVATE KEY-----
-MIHOMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAi3V1XpIGNIWgICCAAw
-HQYJYIZIAWUDBAEqBBBRBo5atWmtyMj9dB0JuDweBIGAnvt+6dyx/TPitJ4akxn+
-1SSB8MljywEF69DVqmwT+SUDcbrFzY9+gIXcuzqXB942HGvCdJKciE7JHvta8pvk
-zg24aOy5ISqZoginRPhKTDpeXGOwMT3CTN7ZUi0QwlqK9gzVFOu3rdP/PZeiYY/6
-Dv5xvIXk7nJkFsmY02ORIWc=
+MIHOMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAjsfXVXuwOQnAICCAAw
+HQYJYIZIAWUDBAEqBBB0O793rOzupOUavjLSiPmBBIGALJxsXCe8rLBfeviStIH0
+A+1jCXUqXNm8D4npyNui/JRi/CjYPqgcO/2ulP8ppUAeTnLVQdhpv5ZOemK5ibMc
+ECaNuzo40snnpve4duZEufkI9hXrO6MAMRT+G5ep1rKyIKboIPkzYUAdezj5ggUu
+p1Gc8HB7j2SYjQX0Ybvlr6k=
 -----END ENCRYPTED PRIVATE KEY-----
 `)
 	testEncryptedECP256PEM := []byte(`-----BEGIN ENCRYPTED PRIVATE KEY-----
-MIHeMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAhau2ksQB01lgICCAAw
-HQYJYIZIAWUDBAEqBBABQd7kN7aKsbD62UQ8QQl7BIGQO4cuxkugQZLMLUPV39Jl
-24jAl0lFLdvAPWZoD9Z5jCa7Fbw/uFza/PVZkScHv6LC5BAah4+NmyydiJiIbP4D
-9udZlQ/T4ui4/zrm/19LGP7TPB8LtxaNl6xyKSbDiJHqkz30h+qGr5naCu5xb1dd
-P2RiPFJIOaO8pEegcJ5EL++ZJXDaX0UAi3X7E1tS27ye
+MIHeMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAhTsVpOdfLrSwICCAAw
+HQYJYIZIAWUDBAEqBBDjOBeXbqjRH1FP6BkI6n3PBIGQgdYzQ7wOKaEp73WloPJl
+966A0tiBCt2wy4LSueFjlh5NtF0o8odzg+zK9lHGD0MluWwM9LsDk5xtfcXCE6Ya
+16PfcoAKE6l7VuGob4wDms/Y0G9DLhKXxErQOfzEolNZjN5RcZF9938ZPjQUDeIX
+yYeijYPrkZWmdcrFPZUkKY5HQMIjXoULlUtlN9fFckLn
 -----END ENCRYPTED PRIVATE KEY-----
 `)
 	testEncryptedECP384PEM := []byte(`-----BEGIN ENCRYPTED PRIVATE KEY-----
-MIIBDjBJBgkqhkiG9w0BBQ0wPDAbBgkqhkiG9w0BBQwwDgQIDJdc8YJtJ98CAggA
-MB0GCWCGSAFlAwQBKgQQshQULAfSfMLjulJQe9mNdASBwCuFuD9JdoL3W+sTpITh
-q1HInr2MUj8KJSYq5dHkx3J4C694NL8T2w6NFrTetP5cOtitjAKHe49+jvsJ4wCE
-taLNTjqnPuKfRYloHmZyLvuQ0G7Ntij1BGt2NjWByM4Xtks/+No8LmQyLLMD0hpN
-/hsvOCJcFPj4ehpeZrtPGQVSm71YmWN2wVLwaSydoU2fBHEvAplNgmbV6aOHknVo
-M4bPjyNFnxa3Gny/q4d3wbBg+eAU9OmTw/fH1ghzCA6Lag==
+MIIBDjBJBgkqhkiG9w0BBQ0wPDAbBgkqhkiG9w0BBQwwDgQIPvZXgw/gzOsCAggA
+MB0GCWCGSAFlAwQBKgQQIEKz02wepEM1NmHfAHd76wSBwALvEtH7pz03/m6Z5Gkv
+aafc7pfImJJzpLVIxGcNxrLkz1/WFoIpXHR8Bdde4dBEa8TYz91KvSNfnFjGE2xk
+AiMSZyuObwGB0Vw1de8tDlpsVYftkZC4VrpRwUEksTUzYgHum/sqRlm7DmeXJq2t
+540HZ9XhS2ZfT1bSqaCMX1s98KMpxDDHRDPX0SEBskyGqIWKLzLfYJnf07OlZ8r4
+/oByTKigO+k9U40jNeuYW1aZeM8wqdApa89K48jWxftfNQ==
 -----END ENCRYPTED PRIVATE KEY-----
 `)
 	testEncryptedECP521PEM := []byte(`-----BEGIN ENCRYPTED PRIVATE KEY-----
-MIIBTzBJBgkqhkiG9w0BBQ0wPDAbBgkqhkiG9w0BBQwwDgQIHH+pqgopXh8CAggA
-MB0GCWCGSAFlAwQBKgQQ6be9c8LDhP5RSd2S5fF/2gSCAQB+kjFu2FTE0VGVtgDY
-euSik/7+a3EQw4cP4BtbN7As0zqvFelN3v1QKyc3Em7SccyD0Ch3JbZ9swJZi3AG
-YcrJd5mbdHdAj2mHXUJqAoG3wseSTroctVlsaazB6WqyqqVe6p6++MO7GikxrH8n
-93LRhzJWZo0NfgRg7RmlbJiHsJuamgUUEvFcwJvGq74dGnRyUnYGPeq9EabOvZRp
-2ZrPWF2TBgKUY4PWN4U620w+TLP3ZJ5Gxr+yKo52CRy7mUKmNsdC4sEYntQ83Ysf
-O+SebXm9E5ulOuGTwR5r+P/+CClIm9PzXzRM02H3b8WliCt51Rm0KFEoI/RaTwGd
-dmeY
+MIIBTzBJBgkqhkiG9w0BBQ0wPDAbBgkqhkiG9w0BBQwwDgQI0ykvTci7+gkCAggA
+MB0GCWCGSAFlAwQBKgQQdd7n4DwrOqViFfmLvN7ERASCAQCuGSdBA8+YCSPpVhcj
+bYxIU0knqQPrlF5N3+BJMGVIz3468DVZFi9UtiiKRaHGfSxaUimqyQ0oUzXULEav
+ZSp6abjxoBJZXPJWHu0f85s3DOjoks990a5o+J72gH/dH9yK/GgvR3MSXlkKoMut
+Zqm3toQAF5RReU3E2wirnYEec8h4Zw5gy3FX63MuvX9mhlOtHTPhiZjoM2ogVQ3b
+iH1BRu4nZF11wSZNxtWflLGMGZaQv3zBt4w7eu6AN25U5DiTy6ReWmsyB+kD/cZ5
+eR9Noh2UlGMDPqTTrv2xqjjo/ieTusS7aGVQ0d8VESsxaAmCYx/kDY3FLtrKvsb5
+kB1E
 -----END ENCRYPTED PRIVATE KEY-----
 `)
 
@@ -209,9 +209,9 @@ dmeY
 	require.NoError(t, err, "could not parse pkcs8 to tuf key")
 
 	block, _ = pem.Decode(testEncryptedECP224PEM)
-	encryptedKey, err := ParsePKCS8ToTufKey(block.Bytes, []byte("poonies"))
+	encryptedKey, err := ParsePKCS8ToTufKey(block.Bytes, []byte("ponies"))
 	require.NoError(t, err, "could not parse encrypted pkcs8 to tuf key")
-	_, err = ConvertPrivateKeyToPKCS8(encryptedKey, data.RoleName(""), data.GUN(""), "poonies")
+	_, err = ConvertPrivateKeyToPKCS8(encryptedKey, data.RoleName(""), data.GUN(""), "ponies")
 	require.NoError(t, err, "could not convert encrypted key to pkcs8")
 
 	require.Equal(t, "ecdsa", key.Algorithm())
@@ -224,9 +224,9 @@ dmeY
 	require.NoError(t, err, "could not parse pkcs8 to tuf key")
 
 	block, _ = pem.Decode(testEncryptedECP256PEM)
-	encryptedKey, err = ParsePKCS8ToTufKey(block.Bytes, []byte("poonies"))
+	encryptedKey, err = ParsePKCS8ToTufKey(block.Bytes, []byte("ponies"))
 	require.NoError(t, err, "could not parse encrypted pkcs8 to tuf key")
-	_, err = ConvertPrivateKeyToPKCS8(encryptedKey, data.RoleName(""), data.GUN(""), "poonies")
+	_, err = ConvertPrivateKeyToPKCS8(encryptedKey, data.RoleName(""), data.GUN(""), "ponies")
 	require.NoError(t, err, "could not convert encrypted key to pkcs8")
 
 	require.Equal(t, "ecdsa", key.Algorithm())
@@ -239,9 +239,9 @@ dmeY
 	require.NoError(t, err, "could not parse pkcs8 to tuf key")
 
 	block, _ = pem.Decode(testEncryptedECP384PEM)
-	encryptedKey, err = ParsePKCS8ToTufKey(block.Bytes, []byte("poonies"))
+	encryptedKey, err = ParsePKCS8ToTufKey(block.Bytes, []byte("ponies"))
 	require.NoError(t, err, "could not parse encrypted pkcs8 to tuf key")
-	_, err = ConvertPrivateKeyToPKCS8(encryptedKey, data.RoleName(""), data.GUN(""), "poonies")
+	_, err = ConvertPrivateKeyToPKCS8(encryptedKey, data.RoleName(""), data.GUN(""), "ponies")
 	require.NoError(t, err, "could not convert encrypted key to pkcs8")
 
 	require.Equal(t, "ecdsa", key.Algorithm())
@@ -254,9 +254,9 @@ dmeY
 	require.NoError(t, err, "could not parse pkcs8 to tuf key")
 
 	block, _ = pem.Decode(testEncryptedECP521PEM)
-	encryptedKey, err = ParsePKCS8ToTufKey(block.Bytes, []byte("poonies"))
+	encryptedKey, err = ParsePKCS8ToTufKey(block.Bytes, []byte("ponies"))
 	require.NoError(t, err, "could not parse encrypted pkcs8 to tuf key")
-	_, err = ConvertPrivateKeyToPKCS8(encryptedKey, data.RoleName(""), data.GUN(""), "poonies")
+	_, err = ConvertPrivateKeyToPKCS8(encryptedKey, data.RoleName(""), data.GUN(""), "ponies")
 	require.NoError(t, err, "could not convert encrypted key to pkcs8")
 
 	require.Equal(t, "ecdsa", key.Algorithm())
@@ -273,11 +273,11 @@ N4ftYRvuxACMROXHW794La8Im/Y=
 `)
 
 	testEncryptedEDPEM := []byte(`-----BEGIN ENCRYPTED PRIVATE KEY-----
-MIHOMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAh8sh6C9OF2tQICCAAw
-HQYJYIZIAWUDBAEqBBAmrQCFS3nRn9pWlcP3zrcLBIGAAPAps1iO5mIKFK3NKoOH
-7Wt96+AuGj5npvk8P3KITWJrC5bBUCvSmBHGvH34Lq/3ZvH0pcAM83q8Ur/Rup45
-oSHUCyOs7hbMiJZpLm4uKFyC/K4g9oAZh0uM8zX+nZ2lhvinG6vr3EJ+Q8PPfjhn
-m5BQI0a/JyoOvDRZfW74YZk=
+MIHOMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAhdzEpEYPy6ugICCAAw
+HQYJYIZIAWUDBAEqBBCBSlYxcs3xzXsdF3JXvyvuBIGA9EaQcxFFk6d6jQiTzACC
+66TFviduVfuqCr+VmulBAQZiCLj3PCpKugQ5z0aJ9CPfCRus5II3qS+qOXjI3OuH
+hmevc2qO2C9bpsDteibfi9/tJJ8vVHdd+w44rSbLdLFro+p9CTT1R/VQillIFT4N
+lXM12s3lyKsXT8bUcibd0gM=
 -----END ENCRYPTED PRIVATE KEY-----
 `)
 
@@ -286,7 +286,7 @@ m5BQI0a/JyoOvDRZfW74YZk=
 	require.NoError(t, err, "could not parse pkcs8 to tuf key")
 
 	block, _ = pem.Decode(testEncryptedEDPEM)
-	encryptedKey, err := ParsePKCS8ToTufKey(block.Bytes, []byte("poonies"))
+	encryptedKey, err := ParsePKCS8ToTufKey(block.Bytes, []byte("ponies"))
 	require.NoError(t, err, "could not parse encrypted pkcs8 to tuf key")
 
 	require.Equal(t, "ed25519", key.Algorithm())

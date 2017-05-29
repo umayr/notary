@@ -9,6 +9,8 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -155,22 +157,21 @@ func TestKeyOperations(t *testing.T) {
 
 	// Check to see if ED key it is encrypted
 	stringEncryptedEDKey := string(encryptedEDKey)
-	fmt.Println(stringEncryptedEDKey)
-	require.True(t, strings.Contains(stringEncryptedEDKey, "-----BEGIN PRIVATE ENCRYPTED KEY-----"))
+	require.True(t, strings.Contains(stringEncryptedEDKey, "-----BEGIN ENCRYPTED PRIVATE KEY-----"))
 	role, _, err := ExtractPrivateKeyAttributes(encryptedEDKey)
 	require.NoError(t, err)
 	require.EqualValues(t, "root", role)
 
 	// Check to see if EC key it is encrypted
 	stringEncryptedECKey := string(encryptedECKey)
-	require.True(t, strings.Contains(stringEncryptedECKey, "-----BEGIN PRIVATE ENCRYPTED KEY-----"))
+	require.True(t, strings.Contains(stringEncryptedECKey, "-----BEGIN ENCRYPTED PRIVATE KEY-----"))
 	role, _, err = ExtractPrivateKeyAttributes(encryptedECKey)
 	require.NoError(t, err)
 	require.EqualValues(t, "root", role)
 
 	// Check to see if RSA key it is encrypted
 	stringEncryptedRSAKey := string(encryptedRSAKey)
-	require.True(t, strings.Contains(stringEncryptedRSAKey, "-----BEGIN PRIVATE ENCRYPTED KEY-----"))
+	require.True(t, strings.Contains(stringEncryptedRSAKey, "-----BEGIN ENCRYPTED PRIVATE KEY-----"))
 	role, _, err = ExtractPrivateKeyAttributes(encryptedRSAKey)
 	require.NoError(t, err)
 	require.EqualValues(t, "root", role)
@@ -278,9 +279,32 @@ func TestECDSAX509PublickeyID(t *testing.T) {
 	require.Equal(t, tufPrivKey.ID(), tufID)
 }
 
+func preserveEnv(name string) func() {
+	if env, has := os.LookupEnv(name); has {
+		os.Unsetenv(name)
+		return func() {
+			os.Setenv(name, env)
+		}
+	}
+
+	return func() {}
+}
+
 func TestExtractPrivateKeyAttributes(t *testing.T) {
+	if os.Getenv(t.Name()) != "1" {
+		defer preserveEnv(notary.FIPSEnvVar)()
+	}
+
 	testPKCS1PEM1 := getPKCS1KeyWithRole(t, "unicorn", "rainbow")
 	testPKCS1PEM2 := getPKCS1KeyWithRole(t, "docker", "")
+
+	if notary.FIPSEnabled() {
+		_, _, err := ExtractPrivateKeyAttributes(testPKCS1PEM1)
+		require.Error(t, err)
+		_, _, err = ExtractPrivateKeyAttributes(testPKCS1PEM2)
+		require.Error(t, err)
+		return
+	}
 
 	testPKCS8PEM1 := getPKCS8KeyWithRole(t, "fat", "panda")
 	testPKCS8PEM2 := getPKCS8KeyWithRole(t, "dagger", "")
@@ -288,24 +312,6 @@ func TestExtractPrivateKeyAttributes(t *testing.T) {
 	// Try garbage bytes
 	_, _, err := ExtractPrivateKeyAttributes([]byte("Knock knock; it's Bob."))
 	require.Error(t, err)
-
-	// PKCS#1
-	if notary.FIPSEnabled {
-		_, _, err := ExtractPrivateKeyAttributes(testPKCS1PEM1)
-		require.Error(t, err)
-		_, _, err = ExtractPrivateKeyAttributes(testPKCS1PEM2)
-		require.Error(t, err)
-	} else {
-		role, gun, err := ExtractPrivateKeyAttributes(testPKCS1PEM1)
-		require.NoError(t, err)
-		require.EqualValues(t, data.RoleName("unicorn"), role)
-		require.EqualValues(t, data.GUN("rainbow"), gun)
-
-		role, gun, err = ExtractPrivateKeyAttributes(testPKCS1PEM2)
-		require.NoError(t, err)
-		require.EqualValues(t, data.RoleName("docker"), role)
-		require.EqualValues(t, data.GUN(""), gun)
-	}
 
 	// PKCS#8
 	role, gun, err := ExtractPrivateKeyAttributes(testPKCS8PEM1)
@@ -317,6 +323,112 @@ func TestExtractPrivateKeyAttributes(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, data.RoleName("dagger"), role)
 	require.EqualValues(t, data.GUN(""), gun)
+
+	// PKCS#1
+	role, gun, err = ExtractPrivateKeyAttributes(testPKCS1PEM1)
+	require.NoError(t, err)
+	require.EqualValues(t, data.RoleName("unicorn"), role)
+	require.EqualValues(t, data.GUN("rainbow"), gun)
+
+	role, gun, err = ExtractPrivateKeyAttributes(testPKCS1PEM2)
+	require.NoError(t, err)
+	require.EqualValues(t, data.RoleName("docker"), role)
+	require.EqualValues(t, data.GUN(""), gun)
+
+	// Run this test again with FIPS flag
+	cmd := exec.Command(os.Args[0], fmt.Sprintf("-test.run=%s", t.Name()))
+	cmd.Env = append(os.Environ(), fmt.Sprintf("%s=1", notary.FIPSEnvVar), fmt.Sprintf("%s=1", t.Name()))
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	require.NoError(t, cmd.Run())
+}
+
+func TestParsePEMPrivateKeyLegacy(t *testing.T) {
+	if os.Getenv(t.Name()) != "1" {
+		defer preserveEnv(notary.FIPSEnvVar)()
+	}
+
+	const (
+		edPKCS1PEM = `-----BEGIN ED25519 PRIVATE KEY-----
+role: root
+
+cVlz659cVO/F6/EOGjuXms1RvX/PmSJalv341Un6N7qmcFuchu5zBcRBZI4nDFwn
+dXJONWxS4OL7kgBTbEeYtnFZc+ufXFTvxevxDho7l5rNUb1/z5kiWpb9+NVJ+je6
+-----END ED25519 PRIVATE KEY-----
+`
+		ecPKCS1PEM = `-----BEGIN EC PRIVATE KEY-----
+role: root
+
+MHcCAQEEILV9cO28WyG1iMPUFXP++AtWDBJv5hQeusiUHL4EeUzRoAoGCCqGSM49
+AwEHoUQDQgAEylKk0nv1In9WNEhTI39MHZhgC8OCBE+Qp/7Fbz65bzSkeFYRIz7x
+122yOUaphJOboK52o6HDbs4QcIkJ0yl/NQ==
+-----END EC PRIVATE KEY-----
+`
+		rsaPKCS1PEM = `-----BEGIN RSA PRIVATE KEY-----
+role: root
+
+MIIEpAIBAAKCAQEAqDpGSq+s8LyhCI8KVscVFfDxMlJdZ8QthwG4/GvKXXNpjyrn
+49Tl5Hn9KUAyNVpzYNU6+KbQcprFiIUAYljlC4MCHLKsSTYHlRVnPszahgzMnkBJ
+wRhgjmvG9smpzFd/0typ1ToRwIJuLPmnT1xC15F7x3WdOx55lJ+WRG5tkhLflKRC
+Uw8JlDEBbMbhOO1E3IS2OeCReLgMao8yalltsN7+4GghXmVCLc0Iewvkx6DMeNRD
+FEFRQJpHzbU5DWU3I8hf6yDyJ7+gfSYnyYPX6mgh3IvJHqRNYdfMZHFe+/pEM+DL
+dOxUpIMgCp57DkwubgoHaZuWt6ix8IB6VJi1dQIDAQABAoIBAGiQ0GBcEgMRPIc1
+YhfOZyzcNxAwYh69sg7Y40MDPSYZNuPmp3zWOI9rxBB/9rVzI4RtBdrI1Yhm66GQ
+Ck0XNEeThxyPcseO7eedBi/i5XGtQwKasz1zCZF9LI75irGZMbq/rlD7Z01hxVnv
+VC/gCSw1Ids5ICI/LxNSnvSqLzE7x11n6beXoummFoncvQDoFrjM3PrFRxVpLppJ
+g3IWGwvQIAhTNA6ahUItuPnZhncARTCaYsfTNbX/zjbWhXIcL6MGJ2dVVJPLwVpY
+3pvvbCR0oJKIJrJcXqD+ax/xhmYNAU4/LcNI9tirGHRxx+uJ6/zW4f+tRF9zXCyU
+G6m/oAECgYEA3qZ86b/YeilO9Oa+7HaClHWCYMXNhAGYviNHqRvRSq849QyWwCRk
+qvogdBYq+5KfX87ASIZFWmgM51QkmloF0DRurit3YRR0PuTuIZr11M+kCB7+HWrd
+DC+3CzYpY6hQU0fsNLBl/x8std4RhjXa6oApsJYjAyr8adY2Qg5q0DUCgYEAwWzz
+nlwacNefFN6YTXWQjGZiHxvHBnXQP5OLuTI3nUNWh4/tJ3/ktsuWFkHFW7rlS2B6
+avSbpycMCxD2mdHt+IlBfzAZAG1ik23SttFbfD4nnQN7NktjZwTmKI5tjCvs3HB6
+JO4CcxJ/VNw/WtHlJu2oPViAy8cLOm2k3TB9eEECgYBFAaTFbchSVGs8TCfwceqW
+yLTX+XZw623DwHt9VjnPw+8LRBOVCbKJq2xTjmtT/WWX9CR0Vek40/br25BcpnoW
+xaloIeCmHgjJVXrYv4ZhptlYCwMHaw+Hr2Iz/11knc4HgcsbqXBzWd4pn+IejqKC
++6XwLRg86x3AT7wRTRad4QKBgQCMs62Pn54YQbFV5ApUJlYM25k62eDwIRlodfLo
+t8/e1RIHsLmpxw3frr6x2AwxiwWqzDagwOjNMck/74oDIMODzIxZcept9iQD7Jqg
+JDDxcuEsBVFGkJZxZQ3rqJelpHo7bJJddMlRXb5EQ6bOcOrJY43DejLOiS7wxLtt
+rw1GQQKBgQCKOduk0ugZe/t/BSkqf3/vlEk4FjwErPMTpLnsVPN13QA5//XHahkm
+bsCmy8401/anZGa1s6m58UswCWNhJlCtfozN/rtkgjWZGOtlc3at0MYDdObBynVg
+PBV11bfmoHzDVeeuz1ztFUb3WjR7xlQe09izY3o3N6yZlTFIsqawIg==
+-----END RSA PRIVATE KEY-----`
+	)
+
+	if notary.FIPSEnabled() {
+		// No legacy key must be accepted in FIPS mode
+		_, err := ParsePEMPrivateKey([]byte(ecPKCS1PEM), "")
+		require.Error(t, err)
+
+		_, err = ParsePEMPrivateKey([]byte(edPKCS1PEM), "")
+		require.Error(t, err)
+
+		_, err = ParsePEMPrivateKey([]byte(rsaPKCS1PEM), "")
+		require.Error(t, err)
+		return
+	}
+
+	key, err := ParsePEMPrivateKey([]byte(ecPKCS1PEM), "")
+	require.NoError(t, err)
+	require.NotNil(t, key.Public())
+	require.NotNil(t, key.Private())
+
+	key, err = ParsePEMPrivateKey([]byte(edPKCS1PEM), "")
+	require.NoError(t, err)
+	require.NotNil(t, key.Public())
+	require.NotNil(t, key.Private())
+
+	key, err = ParsePEMPrivateKey([]byte(rsaPKCS1PEM), "")
+	require.NoError(t, err)
+	require.NotNil(t, key.Public())
+	require.NotNil(t, key.Private())
+
+	// Run this test again with FIPS flag
+	cmd := exec.Command(os.Args[0], fmt.Sprintf("-test.run=%s", t.Name()))
+	cmd.Env = append(os.Environ(), fmt.Sprintf("%s=1", notary.FIPSEnvVar), fmt.Sprintf("%s=1", t.Name()))
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	require.NoError(t, cmd.Run())
 }
 
 func getPKCS1KeyWithRole(t *testing.T, role data.RoleName, gun data.GUN) []byte {
