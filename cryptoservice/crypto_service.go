@@ -143,7 +143,7 @@ func CheckRootKeyIsEncrypted(pemBytes []byte) error {
 		return ErrNoValidPrivateKey
 	}
 
-	if notary.FIPSEnabled {
+	if notary.FIPSEnabled() {
 		if block.Type == "PRIVATE ENCRYPTED KEY" {
 			return nil
 		}

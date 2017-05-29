@@ -290,7 +290,7 @@ func TestExtractPrivateKeyAttributes(t *testing.T) {
 	require.Error(t, err)
 
 	// PKCS#1
-	if notary.FIPSEnabled {
+	if notary.FIPSEnabled() {
 		_, _, err := ExtractPrivateKeyAttributes(testPKCS1PEM1)
 		require.Error(t, err)
 		_, _, err = ExtractPrivateKeyAttributes(testPKCS1PEM2)

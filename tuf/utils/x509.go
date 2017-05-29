@@ -86,7 +86,7 @@ func X509PublicKeyID(certPubKey data.PublicKey) (string, error) {
 }
 
 func parseLegacyPrivateKey(block *pem.Block, passphrase string) (data.PrivateKey, error) {
-	if notary.FIPSEnabled {
+	if notary.FIPSEnabled() {
 		return nil, fmt.Errorf("%s not supported in FIPS mode", block.Type)
 	}
 
@@ -459,7 +459,7 @@ func ExtractPrivateKeyAttributes(pemBytes []byte) (data.RoleName, data.GUN, erro
 
 	switch block.Type {
 	case "RSA PRIVATE KEY", "EC PRIVATE KEY", "ED25519 PRIVATE KEY":
-		if notary.FIPSEnabled {
+		if notary.FIPSEnabled() {
 			return "", "", errors.New("invalid key format")
 		}
 	case "PRIVATE KEY", "PRIVATE ENCRYPTED KEY":
