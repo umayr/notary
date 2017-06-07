@@ -154,7 +154,7 @@ func ParsePEMPrivateKey(pemBytes []byte, passphrase string) (data.PrivateKey, er
 	switch block.Type {
 	case "RSA PRIVATE KEY", "EC PRIVATE KEY", "ED25519 PRIVATE KEY":
 		return parseLegacyPrivateKey(block, passphrase)
-	case "PRIVATE ENCRYPTED KEY", "PRIVATE KEY":
+	case "ENCRYPTED PRIVATE KEY", "PRIVATE KEY":
 		if passphrase == "" {
 			return ParsePKCS8ToTufKey(block.Bytes)
 		}
@@ -462,7 +462,7 @@ func ExtractPrivateKeyAttributes(pemBytes []byte) (data.RoleName, data.GUN, erro
 		if notary.FIPSEnabled() {
 			return "", "", errors.New("invalid key format")
 		}
-	case "PRIVATE KEY", "PRIVATE ENCRYPTED KEY":
+	case "PRIVATE KEY", "ENCRYPTED PRIVATE KEY":
 	default:
 		return "", "", errors.New("unknown key format")
 	}
@@ -480,7 +480,7 @@ func ConvertPrivateKeyToPKCS8(key data.PrivateKey, role data.RoleName, gun data.
 	if passphrase == "" {
 		der, err = ConvertTUFKeyToPKCS8(key)
 	} else {
-		blockType = "PRIVATE ENCRYPTED KEY"
+		blockType = "ENCRYPTED PRIVATE KEY"
 		der, err = ConvertTUFKeyToPKCS8(key, []byte(passphrase))
 	}
 	if err != nil {

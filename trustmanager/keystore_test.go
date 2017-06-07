@@ -58,7 +58,7 @@ func testAddKeyWithRole(t *testing.T, role data.RoleName) {
 	// Check to see if file exists
 	b, err := ioutil.ReadFile(expectedFilePath)
 	require.NoError(t, err, "expected file not found")
-	require.Contains(t, string(b), "-----BEGIN PRIVATE ENCRYPTED KEY-----")
+	require.Contains(t, string(b), "-----BEGIN ENCRYPTED PRIVATE KEY-----")
 
 	// Check that we have the role and gun info for this key's ID
 	keyInfo, ok := store.keyInfoMap[privKey.ID()]
