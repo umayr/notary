@@ -9,6 +9,8 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -278,9 +280,32 @@ func TestECDSAX509PublickeyID(t *testing.T) {
 	require.Equal(t, tufPrivKey.ID(), tufID)
 }
 
+func preserveEnv(name string) func() {
+	if env, has := os.LookupEnv(name); has {
+		os.Unsetenv(name)
+		return func() {
+			os.Setenv(name, env)
+		}
+	}
+
+	return func() {}
+}
+
 func TestExtractPrivateKeyAttributes(t *testing.T) {
+	if os.Getenv(t.Name()) != "1" {
+		defer preserveEnv(notary.FIPSEnvVar)()
+	}
+
 	testPKCS1PEM1 := getPKCS1KeyWithRole(t, "unicorn", "rainbow")
 	testPKCS1PEM2 := getPKCS1KeyWithRole(t, "docker", "")
+
+	if notary.FIPSEnabled() {
+		_, _, err := ExtractPrivateKeyAttributes(testPKCS1PEM1)
+		require.Error(t, err)
+		_, _, err = ExtractPrivateKeyAttributes(testPKCS1PEM2)
+		require.Error(t, err)
+		return
+	}
 
 	testPKCS8PEM1 := getPKCS8KeyWithRole(t, "fat", "panda")
 	testPKCS8PEM2 := getPKCS8KeyWithRole(t, "dagger", "")
@@ -288,24 +313,6 @@ func TestExtractPrivateKeyAttributes(t *testing.T) {
 	// Try garbage bytes
 	_, _, err := ExtractPrivateKeyAttributes([]byte("Knock knock; it's Bob."))
 	require.Error(t, err)
-
-	// PKCS#1
-	if notary.FIPSEnabled() {
-		_, _, err := ExtractPrivateKeyAttributes(testPKCS1PEM1)
-		require.Error(t, err)
-		_, _, err = ExtractPrivateKeyAttributes(testPKCS1PEM2)
-		require.Error(t, err)
-	} else {
-		role, gun, err := ExtractPrivateKeyAttributes(testPKCS1PEM1)
-		require.NoError(t, err)
-		require.EqualValues(t, data.RoleName("unicorn"), role)
-		require.EqualValues(t, data.GUN("rainbow"), gun)
-
-		role, gun, err = ExtractPrivateKeyAttributes(testPKCS1PEM2)
-		require.NoError(t, err)
-		require.EqualValues(t, data.RoleName("docker"), role)
-		require.EqualValues(t, data.GUN(""), gun)
-	}
 
 	// PKCS#8
 	role, gun, err := ExtractPrivateKeyAttributes(testPKCS8PEM1)
@@ -317,6 +324,24 @@ func TestExtractPrivateKeyAttributes(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, data.RoleName("dagger"), role)
 	require.EqualValues(t, data.GUN(""), gun)
+
+	// PKCS#1
+	role, gun, err = ExtractPrivateKeyAttributes(testPKCS1PEM1)
+	require.NoError(t, err)
+	require.EqualValues(t, data.RoleName("unicorn"), role)
+	require.EqualValues(t, data.GUN("rainbow"), gun)
+
+	role, gun, err = ExtractPrivateKeyAttributes(testPKCS1PEM2)
+	require.NoError(t, err)
+	require.EqualValues(t, data.RoleName("docker"), role)
+	require.EqualValues(t, data.GUN(""), gun)
+
+	cmd := exec.Command(os.Args[0], "-test.run=TestExtractPrivateKeyAttributes")
+	cmd.Env = append(os.Environ(), fmt.Sprintf("%s=1", notary.FIPSEnvVar), fmt.Sprintf("%s=1", t.Name()))
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	err = cmd.Run()
+	require.NoError(t, err)
 }
 
 func getPKCS1KeyWithRole(t *testing.T, role data.RoleName, gun data.GUN) []byte {
