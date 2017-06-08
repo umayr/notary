@@ -176,7 +176,7 @@ func Test0Dot3Migration(t *testing.T) {
 
 // We can read and publish from notary0.1 repos
 func Test0Dot1RepoFormat(t *testing.T) {
-	if notary.FIPSEnabled {
+	if notary.FIPSEnabled() {
 		t.Skip("skip backward compatibility test in FIPS mode")
 	}
 	// make a temporary directory and copy the fixture into it, since updating
@@ -239,7 +239,7 @@ func Test0Dot1RepoFormat(t *testing.T) {
 
 // We can read and publish from notary0.3 repos
 func Test0Dot3RepoFormat(t *testing.T) {
-	if notary.FIPSEnabled {
+	if notary.FIPSEnabled() {
 		t.Skip("skip backward compatibility test in FIPS mode")
 	}
 	// make a temporary directory and copy the fixture into it, since updating

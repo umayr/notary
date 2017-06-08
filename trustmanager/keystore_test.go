@@ -58,7 +58,7 @@ func testAddKeyWithRole(t *testing.T, role data.RoleName) {
 	// Check to see if file exists
 	b, err := ioutil.ReadFile(expectedFilePath)
 	require.NoError(t, err, "expected file not found")
-	require.Contains(t, string(b), "-----BEGIN PRIVATE ENCRYPTED KEY-----")
+	require.Contains(t, string(b), "-----BEGIN ENCRYPTED PRIVATE KEY-----")
 
 	// Check that we have the role and gun info for this key's ID
 	keyInfo, ok := store.keyInfoMap[privKey.ID()]
@@ -248,7 +248,7 @@ QvS5quTEllrvrVuWfhpsjl/l
 // TestGetLegacyKey ensures we can still load keys where the role
 // is stored as part of the filename (i.e. <hexID>_<role>.key
 func TestGetLegacyKey(t *testing.T) {
-	if notary.FIPSEnabled {
+	if notary.FIPSEnabled() {
 		t.Skip("skip backward compatibility test in FIPS mode")
 	}
 	testData := []byte(`-----BEGIN RSA PRIVATE KEY-----
