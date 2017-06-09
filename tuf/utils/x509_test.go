@@ -155,22 +155,21 @@ func TestKeyOperations(t *testing.T) {
 
 	// Check to see if ED key it is encrypted
 	stringEncryptedEDKey := string(encryptedEDKey)
-	fmt.Println(stringEncryptedEDKey)
-	require.True(t, strings.Contains(stringEncryptedEDKey, "-----BEGIN PRIVATE ENCRYPTED KEY-----"))
+	require.True(t, strings.Contains(stringEncryptedEDKey, "-----BEGIN ENCRYPTED PRIVATE KEY-----"))
 	role, _, err := ExtractPrivateKeyAttributes(encryptedEDKey)
 	require.NoError(t, err)
 	require.EqualValues(t, "root", role)
 
 	// Check to see if EC key it is encrypted
 	stringEncryptedECKey := string(encryptedECKey)
-	require.True(t, strings.Contains(stringEncryptedECKey, "-----BEGIN PRIVATE ENCRYPTED KEY-----"))
+	require.True(t, strings.Contains(stringEncryptedECKey, "-----BEGIN ENCRYPTED PRIVATE KEY-----"))
 	role, _, err = ExtractPrivateKeyAttributes(encryptedECKey)
 	require.NoError(t, err)
 	require.EqualValues(t, "root", role)
 
 	// Check to see if RSA key it is encrypted
 	stringEncryptedRSAKey := string(encryptedRSAKey)
-	require.True(t, strings.Contains(stringEncryptedRSAKey, "-----BEGIN PRIVATE ENCRYPTED KEY-----"))
+	require.True(t, strings.Contains(stringEncryptedRSAKey, "-----BEGIN ENCRYPTED PRIVATE KEY-----"))
 	role, _, err = ExtractPrivateKeyAttributes(encryptedRSAKey)
 	require.NoError(t, err)
 	require.EqualValues(t, "root", role)
